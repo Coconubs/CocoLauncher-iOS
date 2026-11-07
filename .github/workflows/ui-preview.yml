@@ -8,9 +8,20 @@ name: UI preview (Simulator screenshots)
 # The app reads these launch arguments (simctl launch ... -key value):
 #   -cocoPreview settings|firstrun   opens that screen after start
 #   -cocoOrientation landscape       rotates to landscape (iOS 16+)
+#   -cocoDemoName <name>             types <name> in the name box (saved as a Local account)
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'review = 6 screenshots; ad = home screen portrait + landscape with a sample name and a normal status bar'
+        type: choice
+        options: [review, ad]
+        default: review
+      demo_name:
+        description: 'Name shown in the in-game name box (ad mode)'
+        type: string
+        default: 'Cocoxinhh'
 
 permissions:
   contents: read
@@ -103,25 +114,38 @@ jobs:
         continue-on-error: true
         env:
           UDID: ${{ steps.sim.outputs.udid }}
+          MODE: ${{ inputs.mode || 'review' }}
+          DEMO_NAME: ${{ inputs.demo_name || 'Cocoxinhh' }}
         run: |
           set -u
-          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          if [ "$MODE" = "ad" ]; then
+            # Looks like a phone in use: Wi-Fi, signal bars, battery not charging
+            xcrun simctl status_bar "$UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3               --cellularMode active --cellularBars 4 --operatorName "" --batteryState discharging --batteryLevel 100 || true
+          else
+            xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          fi
           xcrun simctl install "$UDID" artifacts/Payload/AngelAuraAmethyst.app
           shot() {
             name="$1"; wait="$2"; shift 2
             xcrun simctl terminate "$UDID" "$BUNDLE_ID" > /dev/null 2>&1 || true
             sleep 2
-            xcrun simctl launch "$UDID" "$BUNDLE_ID" "$@" >> out/launch.txt 2>&1
+            # Vietnamese, like most players
+            xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(vi)" -AppleLocale vi_VN "$@" >> out/launch.txt 2>&1
             sleep "$wait"
             xcrun simctl io "$UDID" screenshot "out/$name.png" && echo "saved $name.png"
           }
           # First start sets up the Coco profile and preferences
-          shot home-portrait 60 -cocoPreview none
-          shot settings-portrait 25 -cocoPreview settings
-          shot firstrun-portrait 25 -cocoPreview firstrun
-          shot home-landscape 25 -cocoOrientation landscape
-          shot settings-landscape 25 -cocoOrientation landscape -cocoPreview settings
-          shot firstrun-landscape 25 -cocoOrientation landscape -cocoPreview firstrun
+          if [ "$MODE" = "ad" ]; then
+            shot ad-portrait 60 -cocoDemoName "$DEMO_NAME"
+            shot ad-landscape 30 -cocoOrientation landscape -cocoDemoName "$DEMO_NAME"
+          else
+            shot home-portrait 60 -cocoPreview none
+            shot settings-portrait 25 -cocoPreview settings
+            shot firstrun-portrait 25 -cocoPreview firstrun
+            shot home-landscape 25 -cocoOrientation landscape
+            shot settings-landscape 25 -cocoOrientation landscape -cocoPreview settings
+            shot firstrun-landscape 25 -cocoOrientation landscape -cocoPreview firstrun
+          fi
           ls -la out
           COUNT="$(ls out/*.png 2>/dev/null | wc -l | tr -d ' ')"
           echo "### UI preview: $COUNT screenshots (see the ui-preview artifact)" >> "$GITHUB_STEP_SUMMARY"
