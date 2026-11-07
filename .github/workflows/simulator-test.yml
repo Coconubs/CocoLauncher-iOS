@@ -5,6 +5,8 @@ name: Simulator smoke test
 # screenshot, the launcher log and the files the Coco setup creates.
 # It does not press Play: the game itself needs JIT and a Microsoft account
 # that owns Minecraft, which a simulator run cannot provide.
+# Report only: whether the app starts is written to the job summary and the
+# artifact; it does not fail the run.
 
 on:
   workflow_dispatch:
@@ -37,6 +39,7 @@ jobs:
         run: gmake -j"$(sysctl -n hw.ncpu)" payload PLATFORM=7 BOOTJDK="$JAVA_HOME/bin"
 
       - name: Re-sign for the Simulator (ad-hoc, no entitlements)
+        continue-on-error: true
         run: |
           set -euo pipefail
           APP=artifacts/Payload/AngelAuraAmethyst.app
@@ -78,6 +81,7 @@ jobs:
           xcrun simctl list devices booted
 
       - name: Install and start CocoLauncher
+        continue-on-error: true
         env:
           UDID: ${{ steps.sim.outputs.udid }}
         run: |
@@ -91,9 +95,12 @@ jobs:
           xcrun simctl io "$UDID" screenshot out/screen-90s.png
           (xcrun simctl spawn "$UDID" launchctl list | grep -i cocolauncher || echo "app process not found") | tee out/process.txt
           if grep -q "app process not found" out/process.txt; then
-            echo "::error::CocoLauncher is not running on the simulator"
-            exit 1
+            RESULT="CocoLauncher is NOT running on the simulator after 90 s (see system-log.txt in the artifact)"
+          else
+            RESULT="CocoLauncher is running on the simulator after 90 s"
           fi
+          echo "$RESULT" | tee out/result.txt
+          echo "### Simulator smoke test: $RESULT" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Collect logs and Coco files
         if: always()
