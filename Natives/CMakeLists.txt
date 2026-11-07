@@ -134,7 +134,10 @@ add_executable(AngelAuraAmethyst
 
   AccountListViewController.m
   AppDelegate.m
+  CocoHomeViewController.m
   CocoPerformance.m
+  CocoSettingsViewController.m
+  CocoUI.m
   CustomControlsViewController.m
   CustomControlsViewController+UndoManager.m
   DownloadProgressViewController.m
@@ -191,6 +194,7 @@ target_link_libraries(AngelAuraAmethyst
   "-framework CoreGraphics"
   "-framework CoreImage"
   "-framework CoreMotion"
+  "-framework CoreText"
   "-framework GameController"
   "-framework IOKit"
   "-framework QuartzCore"

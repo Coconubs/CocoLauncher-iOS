@@ -23,6 +23,8 @@
     NSMutableDictionary<NSString *, NSMutableDictionary *> *defaults = @{
         @"general": @{
             @"check_sha": @YES,
+            // CocoLauncher: Coco home screen (NO = Amethyst interface)
+            @"coco_home_ui": @YES,
             @"cosmetica": @NO,
             @"debug_logging": @(!CONFIG_RELEASE),
         }.mutableCopy,

@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 
+#import "CocoHomeViewController.h"
 #import "CocoPerformance.h"
 #import "DBNumberedSlider.h"
 #import "LauncherNavigationController.h"
@@ -56,6 +57,15 @@
         @[
             // General settings
             @{@"icon": @"cube"},
+            // CocoLauncher: switch between the Coco home screen and the Amethyst interface
+            @{@"key": @"coco_home_ui",
+              @"hasDetail": @YES,
+              @"icon": @"house",
+              @"type": self.typeSwitch,
+              @"action": ^(BOOL enabled){
+                  CocoReloadRootViewController();
+              }
+            },
             @{@"key": @"check_sha",
               @"hasDetail": @YES,
               @"icon": @"lock.shield",
