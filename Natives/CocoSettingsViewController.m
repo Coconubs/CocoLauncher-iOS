@@ -176,7 +176,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 
     NSString *version = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     UILabel *about = CocoLabel([NSString stringWithFormat:localize(@"coco.settings.about", nil), version], CocoFontRegular, 15, COCO_DIM);
-    about.numberOfLines = 2;
+    about.adjustsFontSizeToFitWidth = YES;
+    about.minimumScaleFactor = 0.6;
 
     self.verifyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.verifyButton.translatesAutoresizingMaskIntoConstraints = NO;
