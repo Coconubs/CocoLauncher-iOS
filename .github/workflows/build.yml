@@ -20,6 +20,7 @@ on:
       - '.github/workflows/pages.yml'
       - '.github/workflows/mirror-jre.yml'
       - '.github/workflows/simulator-test.yml'
+      - '.github/workflows/ui-preview.yml'
       - '.github/scripts/**'
   pull_request:
   workflow_dispatch:
