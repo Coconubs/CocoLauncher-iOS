@@ -1,0 +1,150 @@
+name: UI preview (Simulator screenshots)
+
+# Builds an iOS Simulator copy of the app from the chosen branch and saves
+# screenshots of the Coco screens (portrait and landscape): home, settings
+# and the first-download sheet. Report only: a build error or a failed step is
+# written to the job summary and the artifact; the run itself never fails.
+#
+# The app reads these launch arguments (simctl launch ... -key value):
+#   -cocoPreview settings|firstrun   opens that screen after start
+#   -cocoOrientation landscape       rotates to landscape (iOS 16+)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: macos-26
+    timeout-minutes: 75
+    env:
+      BUNDLE_ID: dev.coconubs.cocolauncher.ios
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install ldid and GNU make
+        continue-on-error: true
+        run: brew install ldid make
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '8'
+
+      - name: Build for the iOS Simulator
+        id: build
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p out
+          gmake -j"$(sysctl -n hw.ncpu)" payload PLATFORM=7 BOOTJDK="$JAVA_HOME/bin" 2>&1 | tee out/build.log
+
+      - name: Report build errors
+        if: steps.build.outcome != 'success'
+        run: |
+          {
+            echo "### UI preview: the Simulator build FAILED"
+            echo '```'
+            grep -E "error:|Error [0-9]" out/build.log | head -n 60
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E -B2 -A3 " error:" out/build.log | head -n 200 || true
+
+      - name: Re-sign for the Simulator (ad-hoc, no entitlements)
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          APP=artifacts/Payload/AngelAuraAmethyst.app
+          find "$APP" -type f | while read -r f; do
+            if file "$f" | grep -q 'Mach-O'; then
+              codesign -f -s - --timestamp=none "$f" > /dev/null 2>&1 || echo "codesign failed: $f"
+            fi
+          done
+          for fw in "$APP"/Frameworks/*.framework; do
+            [ -d "$fw" ] && codesign -f -s - --timestamp=none "$fw" > /dev/null 2>&1 || true
+          done
+          codesign -f -s - --timestamp=none "$APP"
+
+      - name: Boot a simulator
+        id: sim
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          UDID="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          for runtime in sorted(devices, reverse=True):
+              if "iOS" not in runtime:
+                  continue
+              for dev in devices[runtime]:
+                  if dev["name"].startswith("iPhone") and "Pro" in dev["name"] and "Max" not in dev["name"]:
+                      print(dev["udid"])
+                      sys.exit(0)
+              for dev in devices[runtime]:
+                  if dev["name"].startswith("iPhone"):
+                      print(dev["udid"])
+                      sys.exit(0)
+          sys.exit(1)
+          ')"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl list devices booted | tee out/device.txt
+
+      - name: Take screenshots
+        if: steps.build.outcome == 'success' && steps.sim.outcome == 'success'
+        continue-on-error: true
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -u
+          xcrun simctl status_bar "$UDID" override --time "9:41" --batteryState charged --batteryLevel 100 || true
+          xcrun simctl install "$UDID" artifacts/Payload/AngelAuraAmethyst.app
+          shot() {
+            name="$1"; wait="$2"; shift 2
+            xcrun simctl terminate "$UDID" "$BUNDLE_ID" > /dev/null 2>&1 || true
+            sleep 2
+            xcrun simctl launch "$UDID" "$BUNDLE_ID" "$@" >> out/launch.txt 2>&1
+            sleep "$wait"
+            xcrun simctl io "$UDID" screenshot "out/$name.png" && echo "saved $name.png"
+          }
+          # First start sets up the Coco profile and preferences
+          shot home-portrait 60 -cocoPreview none
+          shot settings-portrait 25 -cocoPreview settings
+          shot firstrun-portrait 25 -cocoPreview firstrun
+          shot home-landscape 25 -cocoOrientation landscape
+          shot settings-landscape 25 -cocoOrientation landscape -cocoPreview settings
+          shot firstrun-landscape 25 -cocoOrientation landscape -cocoPreview firstrun
+          ls -la out
+          COUNT="$(ls out/*.png 2>/dev/null | wc -l | tr -d ' ')"
+          echo "### UI preview: $COUNT screenshots (see the ui-preview artifact)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Collect logs
+        if: always()
+        continue-on-error: true
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          mkdir -p out
+          if [ -n "${UDID:-}" ]; then
+            DATA="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data 2>/dev/null)"
+            cp "$DATA/Documents/latestlog.txt" out/ 2>/dev/null || true
+            xcrun simctl spawn "$UDID" log show --last 20m --style compact --predicate 'process == "AngelAuraAmethyst"' > out/system-log.txt 2>&1 || true
+            grep -i -E "CocoHome|CocoUI|Coco\]|Unable to simultaneously|terminating|exception" out/system-log.txt | tail -n 80 || true
+          fi
+          for f in $(ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i -E "amethyst|coco"); do cp "$HOME/Library/Logs/DiagnosticReports/$f" out/; done
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-preview
+          path: out/
+          retention-days: 14
