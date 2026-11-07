@@ -71,13 +71,8 @@
             [contentNavigationController performSelector:@selector(enterCustomControls)];
         }]];
     }
-    [self.options addObject:
-     (id)[LauncherMenuCustomItem
-          title:localize(@"launcher.menu.execute_jar", nil)
-          imageName:@"MenuInstallJar" action:^{
-        [contentNavigationController performSelector:@selector(enterModInstaller)];
-    }]];
-    
+    // CocoLauncher: "Execute .jar" (mod installers) is hidden, the Coco pack is installed automatically
+
     // TODO: Finish log-uploading service integration
     [self.options addObject:
      (id)[LauncherMenuCustomItem

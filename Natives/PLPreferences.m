@@ -9,16 +9,28 @@
 
 @implementation PLPreferences
 
+// CocoLauncher: fixed Java heap for the Coco Lite pack (~127 mods) instead of
+// "Auto RAM" (25% of the device memory is too little for the pack).
++ (NSNumber *)cocoDefaultAllocatedMemory {
+    unsigned long long deviceMB = NSProcessInfo.processInfo.physicalMemory >> 20;
+    if (deviceMB >= 7000) {
+        return @(3072); // 8 GB devices
+    } else if (deviceMB >= 5000) {
+        return @(2560); // 6 GB devices
+    }
+    return @(2048);
+}
+
 + (id)defaultPrefForGlobal:(BOOL)global {
     // Preferences that can be isolated
     NSMutableDictionary<NSString *, NSMutableDictionary *> *defaults = @{
         @"general": @{
             @"check_sha": @YES,
-            @"cosmetica": @YES,
+            @"cosmetica": @NO,
             @"debug_logging": @(!CONFIG_RELEASE),
         }.mutableCopy,
         @"video": @{ // Video & Audio
-            @"renderer": @"auto",
+            @"renderer": @ RENDERER_NAME_MOBILEGLUES,
             @"resolution": @(100),
             @"max_framerate": @YES,
             @"performance_hud": @NO,
@@ -48,20 +60,19 @@
             @"gyroscope_sensitivity": @(100)
         }.mutableCopy,
         @"java": @{
+            // CocoLauncher bundles Java 21 only (Minecraft 1.21.1)
             @"java_homes": @{
                 @"0": @{
-                    @"1_16_5_older": @"8",
-                    @"1_17_newer": @"17",
-                    @"execute_jar": @"8"
+                    @"1_16_5_older": @"21",
+                    @"1_17_newer": @"21",
+                    @"execute_jar": @"21"
                 }.mutableCopy,
-                @"8": @"internal",
-                @"17": @"internal",
                 @"21": @"internal"
             }.mutableCopy,
             @"java_args": @"",
             @"env_variables": @"",
-            @"auto_ram": @(!getEntitlementValue(@"com.apple.private.memorystatus")),
-            @"allocated_memory": [NSNumber numberWithFloat:roundf((NSProcessInfo.processInfo.physicalMemory / 1048576) * 0.25)]
+            @"auto_ram": @NO,
+            @"allocated_memory": [PLPreferences cocoDefaultAllocatedMemory]
         }.mutableCopy,
         @"internal": @{
             @"isolated": @NO,

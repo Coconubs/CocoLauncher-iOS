@@ -90,6 +90,8 @@ void openLink(UIViewController* sender, NSURL* link);
 void handle_fatal_exit(int code);
 
 NSString* localize(NSString* key, NSString* comment);
+// CocoLauncher: device model identifier (e.g. iPhone16,2), replaces the unlicensed ballpa1n HostManager
+NSString* CocoDeviceModel(void);
 NSMutableDictionary* parseJSONFromFile(NSString *path);
 NSError* saveJSONToFile(NSDictionary *dict, NSString *path);
 void customNSLog(const char *file, int lineNumber, const char *functionName, NSString *format, ...);

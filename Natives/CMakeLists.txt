@@ -24,8 +24,6 @@ include_directories(
   "external/mesa"
   "external/AltKit"
   "external/Apple"
-  "external/ballpa1n"
-  "external/ballpa1n/wrapped"
   "external/mach"
 )
 
@@ -119,8 +117,6 @@ add_executable(AngelAuraAmethyst
 
   external/DBNumberedSlider/Classes/DBNumberedSlider.m
   external/NRFileManager/NSFileManager+NRFileManager.m
-  external/ballpa1n/HostManager.c
-  external/ballpa1n/wrapped/HostManagerBridge.m
   external/mach/mach_excServer.c
 
   installer/FabricInstallViewController.m

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/sysctl.h>
 
 #include "utils.h"
 
@@ -101,6 +102,24 @@ NSError* saveJSONToFile(NSDictionary *dict, NSString *path) {
         return error;
     }
     return nil;
+}
+
+NSString* CocoDeviceModel(void) {
+    size_t size = 0;
+    if (sysctlbyname("hw.machine", NULL, &size, NULL, 0) != 0 || size == 0) {
+        return @"unknown";
+    }
+    char *machine = malloc(size);
+    if (machine == NULL) {
+        return @"unknown";
+    }
+    if (sysctlbyname("hw.machine", machine, &size, NULL, 0) != 0) {
+        free(machine);
+        return @"unknown";
+    }
+    NSString *model = [NSString stringWithUTF8String:machine];
+    free(machine);
+    return model ?: @"unknown";
 }
 
 NSString* localize(NSString* key, NSString* comment) {

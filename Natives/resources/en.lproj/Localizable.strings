@@ -332,3 +332,8 @@
 "controller_configurator.section.footer.menu_mappings" = "Bindings when the mouse is not locked, such as on the title screen or in the pause menu.";
 "controller_configurator.section.controller_style" = "Controller type";
 "controller_configurator.section.footer.controller_style" = "Show different controller button names in this configurator.";
+
+/* CocoLauncher */
+"coco.account.hint" = "First time: sign in with a Microsoft account that OWNS Minecraft: Java Edition, so the game can be downloaded. After that, add a Local account with your Coco character name to play on Coco.";
+"coco.account.error.local_download" = "Minecraft can't be legally installed when logged in with a local account. Please switch to an online account to continue. (Coco: the first download needs a Microsoft account that owns Minecraft: Java Edition.)";
+"coco.pack.error.manifest" = "Could not download the Coco Cobblemon file list. Check your internet connection (Wi-Fi is recommended for the first download, about 460 MB) and try again.";

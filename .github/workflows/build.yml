@@ -1,0 +1,150 @@
+name: Build CocoLauncher iOS
+
+# Builds the IPA on a GitHub-hosted Mac (free for public repositories).
+# The upstream Amethyst workflow used a self-hosted Mac (runs-on: J316sAP),
+# which is why this workflow installs its own tools (ldid, GNU make, JDK 8).
+#
+# The IPA is not signed with a certificate: ldid adds the entitlements
+# (get-task-allow, increased-memory-limit, ...) and SideStore re-signs the
+# app with the player's own Apple ID when it is installed.
+#
+# When a release is published, the IPA is attached to it and the SideStore
+# source on GitHub Pages is rebuilt.
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'site/**'
+      - '**.md'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/mirror-jre.yml'
+      - '.github/scripts/**'
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build IPA
+    runs-on: macos-26
+    timeout-minutes: 120
+    outputs:
+      version: ${{ steps.info.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          echo "iPhoneOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+          cmake --version | head -n 1
+          sysctl -n hw.ncpu
+
+      - name: Lint Info.plist and strings
+        run: plutil -lint Natives/Info.plist Natives/resources/en.lproj/Localizable.strings Natives/resources/vi.lproj/Localizable.strings
+
+      - name: Install ldid and GNU make
+        run: |
+          brew install ldid make
+          command -v ldid gmake
+
+      - name: Set up JDK 8 (Java part of the launcher)
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '8'
+
+      - name: Build
+        run: gmake -j"$(sysctl -n hw.ncpu)" package PLATFORM=2 BOOTJDK="$JAVA_HOME/bin"
+
+      - name: Check the IPA and write app-info.json
+        id: info
+        run: |
+          set -euo pipefail
+          IPA="$(ls artifacts/CocoLauncher-*-ios.ipa)"
+          APP=artifacts/Payload/AngelAuraAmethyst.app
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")"
+          BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")"
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
+          echo "bundle=$BUNDLE_ID version=$VERSION build=$BUILD"
+          ldid -e "$APP/AngelAuraAmethyst" > entitlements.plist
+          cat entitlements.plist
+          echo "--- Java runtimes"
+          ls "$APP/java_runtimes"
+          cat "$APP/java_runtimes/java-21-openjdk/release"
+          echo "--- Coco files"
+          ls -la "$APP/coco"
+          mkdir -p out
+          cp "$IPA" "out/CocoLauncher-$VERSION.ipa"
+          SIZE="$(stat -f%z "out/CocoLauncher-$VERSION.ipa")"
+          SHA="$(shasum -a 256 "out/CocoLauncher-$VERSION.ipa" | cut -d' ' -f1)"
+          python3 - "$APP/Info.plist" entitlements.plist out/app-info.json "$VERSION" "$BUILD" "$BUNDLE_ID" "$SIZE" "$SHA" "$GITHUB_SHA" <<'PY'
+          import json, plistlib, sys
+          info = plistlib.load(open(sys.argv[1], "rb"))
+          ent = plistlib.load(open(sys.argv[2], "rb"))
+          privacy = {k: v for k, v in info.items() if k.startswith("NS") and k.endswith("UsageDescription")}
+          data = {
+              "version": sys.argv[4],
+              "buildVersion": sys.argv[5],
+              "bundleIdentifier": sys.argv[6],
+              "size": int(sys.argv[7]),
+              "sha256": sys.argv[8],
+              "commit": sys.argv[9],
+              "minOSVersion": info.get("MinimumOSVersion", "14.0"),
+              "entitlements": sorted(ent.keys()),
+              "privacy": privacy,
+          }
+          with open(sys.argv[3], "w", encoding="utf-8") as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+          PY
+          cat out/app-info.json
+          ls -la out
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload IPA (workflow artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CocoLauncher-ipa
+          path: out/
+          retention-days: 30
+
+  release:
+    name: Attach the IPA to the release
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Download the IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: CocoLauncher-ipa
+          path: out
+
+      - name: Check that the tag matches the app version
+        run: |
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "Tag $TAG does not match the app version $VERSION (CFBundleShortVersionString)"
+            exit 1
+          fi
+
+      - name: Upload to the release
+        run: gh release upload "$TAG" "out/CocoLauncher-$VERSION.ipa" out/app-info.json --clobber -R "$GITHUB_REPOSITORY"
+
+      - name: Rebuild the SideStore source
+        run: gh workflow run pages.yml -R "$GITHUB_REPOSITORY" --ref main

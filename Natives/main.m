@@ -4,8 +4,8 @@
 #import <UIKit/UIKit.h>
 
 #import "AppDelegate.h"
+#import "CocoConfig.h"
 #import "customcontrols/CustomControlsUtils.h"
-#import "HostManagerBridge.h"
 #import "JavaLauncher.h"
 #import "LauncherPreferences.h"
 #import "PLLogOutputView.h"
@@ -119,7 +119,7 @@ void init_logDeviceAndVer(char *argument) {
     }
     setenv("AME_DETECTEDINST", type, 1);
     
-    NSLog(@"[Pre-Init] Device: %@", [HostManager GetModelName]);
+    NSLog(@"[Pre-Init] Device: %@", CocoDeviceModel());
     NSLog(@"[Pre-Init] %@ (%s)", UIDevice.currentDevice.completeOSVersion, type);
     
     NSLog(@"[Pre-init] Entitlements availability:");
@@ -237,6 +237,58 @@ void init_setupMultiDir() {
     setenv("GAME_DIR", lasmPath.UTF8String, 1);
 }
 
+// CocoLauncher: Coco Cobblemon profile (Minecraft 1.21.1 + Fabric Loader 0.18.4,
+// game directory ./CocoLite). The Fabric version file ships with the app; the
+// game itself is still downloaded by the launcher with the player's account.
+void init_setupCoco() {
+    NSString *gameDir = @(getenv("GAME_DIR"));
+    NSString *versionJson = [NSString stringWithFormat:@"%1$@/versions/%2$@/%2$@.json", gameDir, COCO_VERSION_ID];
+    if (![fm fileExistsAtPath:versionJson]) {
+        NSString *bundled = [NSBundle.mainBundle pathForResource:COCO_VERSION_ID ofType:@"json" inDirectory:@"coco"];
+        if (bundled) {
+            NSError *copyError = nil;
+            [fm createDirectoryAtPath:versionJson.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
+            if (![fm copyItemAtPath:bundled toPath:versionJson error:&copyError]) {
+                NSLog(@"[Coco] Could not copy %@.json: %@", COCO_VERSION_ID, copyError.localizedDescription);
+            }
+        } else {
+            NSLog(@"[Coco] Bundled %@.json is missing", COCO_VERSION_ID);
+        }
+    }
+    [fm createDirectoryAtPath:[gameDir stringByAppendingPathComponent:COCO_GAME_DIR_NAME] withIntermediateDirectories:YES attributes:nil error:nil];
+
+    PLProfiles *profiles = PLProfiles.current;
+    NSMutableDictionary *list = [NSMutableDictionary dictionaryWithDictionary:(profiles.profiles ?: @{})];
+    BOOL firstSetup = ![NSUserDefaults.standardUserDefaults boolForKey:@"CocoProfileSetupDone"];
+    BOOL changed = NO;
+    if (list[COCO_PROFILE_NAME] == nil) {
+        list[COCO_PROFILE_NAME] = @{
+            @"name": COCO_PROFILE_NAME,
+            @"lastVersionId": COCO_VERSION_ID,
+            @"gameDir": COCO_PROFILE_GAME_DIR,
+            @"renderer": @ RENDERER_NAME_MOBILEGLUES,
+            @"icon": COCO_PROFILE_ICON_URL
+        }.mutableCopy;
+        changed = YES;
+    }
+    if (firstSetup) {
+        // Fresh install: drop the stock "(Default)" profile and select Coco
+        NSDictionary *stock = list[@"(Default)"];
+        if ([stock[@"lastVersionId"] isEqual:@"latest-release"]) {
+            [list removeObjectForKey:@"(Default)"];
+        }
+        profiles.profileDict[@"selectedProfile"] = (id)COCO_PROFILE_NAME;
+        changed = YES;
+        [NSUserDefaults.standardUserDefaults setBool:YES forKey:@"CocoProfileSetupDone"];
+    }
+    if (changed) {
+        profiles.profileDict[@"profiles"] = (id)list;
+        [profiles save];
+        [PLProfiles updateCurrent];
+        NSLog(@"[Coco] Profile \"%@\" is ready", COCO_PROFILE_NAME);
+    }
+}
+
 void init_setupResolvConf() {
     // Write known DNS servers to the config
     NSString *path = [NSString stringWithFormat:@"%s/resolv.conf", getenv("AME_HOME")];
@@ -255,7 +307,7 @@ void init_setupHomeDirectory() {
     
     BOOL isNotSandboxed = [@(getenv("HOME")).lastPathComponent isEqualToString:NSUserName()];
     homeDir = [NSString stringWithFormat:@"%s/Documents%@", getenv("HOME"),
-        isNotSandboxed ? @"/AngelAuraAmethyst":@""];
+        isNotSandboxed ? @"/CocoLauncher":@""];
 
     if (![fm fileExistsAtPath:homeDir] ) {
         [fm createDirectoryAtPath:homeDir withIntermediateDirectories:NO attributes:nil error:&homeError];
@@ -309,6 +361,7 @@ int main(int argc, char *argv[]) {
     init_setupMultiDir();
     toggleIsolatedPref(NO);
     [PLProfiles updateCurrent];
+    init_setupCoco();
     init_setupAccounts();
     init_setupCustomControls();
 

@@ -1,4 +1,5 @@
 #import <WebKit/WebKit.h>
+#import "CocoConfig.h"
 #import "LauncherMenuViewController.h"
 #import "LauncherNewsViewController.h"
 #import "LauncherPreferences.h"
@@ -28,7 +29,8 @@ UIEdgeInsets insets;
     CGSize size = CGSizeMake(self.view.frame.size.width, self.view.frame.size.height);
     insets = UIApplication.sharedApplication.windows.firstObject.safeAreaInsets;
     
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:@"https://wiki.angelauramc.dev/patchnotes/changelogs/IOS.html"]];
+    // CocoLauncher: help page for Coco Cobblemon players
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:COCO_HELP_URL]];
 
     WKWebViewConfiguration *webConfig = [[WKWebViewConfiguration alloc] init];
     webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration:webConfig];

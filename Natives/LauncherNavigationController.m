@@ -456,18 +456,23 @@ static void *ProgressObserverContext = &ProgressObserverContext;
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:localize(@"launcher.wait_jit.title", nil)
         message:hasTrollStoreJIT ? localize(@"launcher.wait_jit_trollstore.message", nil) : localize(@"launcher.wait_jit.message", nil)
         preferredStyle:UIAlertControllerStyleAlert];
-/* TODO:
-    UIAlertAction *cancel = [UIAlertAction actionWithTitle:localize(@"Cancel", nil) style:UIAlertActionStyleCancel handler:^{
-        
+    // CocoLauncher: let the player stop waiting (e.g. StikDebug or LocalDevVPN was not ready)
+    __block BOOL jitWaitCancelled = NO;
+    UIAlertAction *cancel = [UIAlertAction actionWithTitle:localize(@"Cancel", nil) style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+        jitWaitCancelled = YES;
+        self.progressText.text = nil;
     }];
     [alert addAction:cancel];
-*/
     [self presentViewController:alert animated:YES completion:nil];
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        while (!isJITEnabled(false)) {
+        while (!isJITEnabled(false) && !jitWaitCancelled) {
             // Perform check for every 200ms
             usleep(1000*200);
+        }
+        if (jitWaitCancelled) {
+            NSLog(@"[JIT] Waiting for JIT was cancelled");
+            return;
         }
         dispatch_async(dispatch_get_main_queue(), ^{
             [alert dismissViewControllerAnimated:YES completion:handler];

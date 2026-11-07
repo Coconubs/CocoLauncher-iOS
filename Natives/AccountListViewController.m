@@ -141,7 +141,8 @@
 }
 
 - (void)actionAddAccount:(UITableViewCell *)sender {
-    UIAlertController *picker = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    // CocoLauncher: explain the account rule (an owned copy of Minecraft: Java Edition is needed to download the game)
+    UIAlertController *picker = [UIAlertController alertControllerWithTitle:nil message:localize(@"coco.account.hint", nil) preferredStyle:UIAlertControllerStyleActionSheet];
     UIAlertAction *actionMicrosoft = [UIAlertAction actionWithTitle:localize(@"login.option.microsoft", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         [self actionLoginMicrosoft:sender];
     }];

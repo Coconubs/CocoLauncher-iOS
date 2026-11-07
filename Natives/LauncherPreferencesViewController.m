@@ -1,7 +1,6 @@
 #import <Foundation/Foundation.h>
 
 #import "DBNumberedSlider.h"
-#import "HostManagerBridge.h"
 #import "LauncherNavigationController.h"
 #import "LauncherMenuViewController.h"
 #import "LauncherPreferences.h"
@@ -59,12 +58,6 @@
             @{@"key": @"check_sha",
               @"hasDetail": @YES,
               @"icon": @"lock.shield",
-              @"type": self.typeSwitch,
-              @"enableCondition": whenNotInGame
-            },
-            @{@"key": @"cosmetica",
-              @"hasDetail": @YES,
-              @"icon": @"eyeglasses",
               @"type": self.typeSwitch,
               @"enableCondition": whenNotInGame
             },
@@ -431,10 +424,10 @@
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 0) { // Add to general section
-        return [NSString stringWithFormat:@"Angel Aura Amethyst %@-%s (%s/%s)\n%@ on %@ (%s)\nPID: %d",
+        return [NSString stringWithFormat:@"CocoLauncher %@-%s (%s/%s)\nBased on Angel Aura Amethyst and PojavLauncher (GPLv3)\n%@ on %@ (%s)\nPID: %d",
             NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"],
             CONFIG_TYPE, CONFIG_BRANCH, CONFIG_COMMIT,
-            UIDevice.currentDevice.completeOSVersion, [HostManager GetModelName], getenv("AME_DETECTEDINST"), getpid()];
+            UIDevice.currentDevice.completeOSVersion, CocoDeviceModel(), getenv("AME_DETECTEDINST"), getpid()];
     }
 
     NSString *footer = NSLocalizedStringWithDefaultValue(([NSString stringWithFormat:@"preference.section.footer.%@", self.prefSections[section]]), @"Localizable", NSBundle.mainBundle, @" ", nil);

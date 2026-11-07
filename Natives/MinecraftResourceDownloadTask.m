@@ -3,16 +3,36 @@
 #import "authenticator/BaseAuthenticator.h"
 #import "installer/modpack/ModpackAPI.h"
 #import "AFNetworking.h"
+#import "CocoConfig.h"
 #import "LauncherNavigationController.h"
 #import "LauncherPreferences.h"
 #import "MinecraftResourceDownloadTask.h"
 #import "MinecraftResourceUtils.h"
+#import "PLProfiles.h"
 #import "ios_uikit_bridge.h"
 #import "utils.h"
 
 @interface MinecraftResourceDownloadTask ()
 @property AFURLSessionManager* manager;
+// CocoLauncher: Coco pack sync state
+@property NSInteger cocoRemaining;
+@property NSDictionary *cocoManifest;
 @end
+
+// CocoLauncher: SHA-1 of a file without reading it all into memory at once
+static NSString *CocoSHA1OfFile(NSString *path) {
+    NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
+    if (data == nil) {
+        return nil;
+    }
+    unsigned char digest[CC_SHA1_DIGEST_LENGTH];
+    CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
+    NSMutableString *hex = [NSMutableString stringWithCapacity:CC_SHA1_DIGEST_LENGTH * 2];
+    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
+        [hex appendFormat:@"%02x", digest[i]];
+    }
+    return hex;
+}
 
 @implementation MinecraftResourceDownloadTask
 
@@ -245,22 +265,251 @@
         [self downloadAssetMetadataWithSuccess:^{
             NSArray *libTasks = [self downloadClientLibraries];
             NSArray *assetTasks = [self downloadClientAssets];
-            // Drop the 1 byte we set initially
-            self.progress.totalUnitCount--;
-            self.textProgress.totalUnitCount--;
-            if (self.progress.totalUnitCount == 0) {
-                // We have nothing to download, invoke completion observer
-                self.progress.totalUnitCount = 1;
-                self.progress.completedUnitCount = 1;
-                self.textProgress.totalUnitCount = 1;
-                self.textProgress.completedUnitCount = 1;
+            if (self.progress.cancelled) {
                 return;
             }
-            [libTasks makeObjectsPerformSelector:@selector(resume)];
-            [assetTasks makeObjectsPerformSelector:@selector(resume)];
-            [self.metadata removeObjectForKey:@"assetIndexObj"];
+            // CocoLauncher: after the game files, sync the Coco pack (Coco profile only)
+            [self cocoPackTasksWithCompletion:^(NSArray *cocoTasks) {
+                // Drop the 1 byte we set initially
+                self.progress.totalUnitCount--;
+                self.textProgress.totalUnitCount--;
+                if (self.progress.totalUnitCount == 0) {
+                    // We have nothing to download, invoke completion observer
+                    self.progress.totalUnitCount = 1;
+                    self.progress.completedUnitCount = 1;
+                    self.textProgress.totalUnitCount = 1;
+                    self.textProgress.completedUnitCount = 1;
+                    return;
+                }
+                [libTasks makeObjectsPerformSelector:@selector(resume)];
+                [assetTasks makeObjectsPerformSelector:@selector(resume)];
+                [cocoTasks makeObjectsPerformSelector:@selector(resume)];
+                [self.metadata removeObjectForKey:@"assetIndexObj"];
+            }];
         }];
     }];
+}
+
+#pragma mark - Coco Cobblemon pack (CocoLauncher)
+
+// The Coco pack only contains Coco Cobblemon's own mods, configs and resource
+// packs (no Mojang files), so it does not go through checkAccessWithDialog.
+// It is only synced from inside downloadVersion, after the Minecraft files
+// have been checked or downloaded with the owner's Microsoft account.
+
+- (NSString *)cocoPackDirectory {
+    return [NSString stringWithFormat:@"%s/instances/%@/%@", getenv("AME_HOME"),
+        getPrefObject(@"general.game_directory"), COCO_GAME_DIR_NAME].stringByStandardizingPath;
+}
+
+- (BOOL)cocoIsCocoProfile {
+    if (getenv("DEMO_LOCK") != NULL) {
+        return NO;
+    }
+    NSString *gameDir = [PLProfiles resolveKeyForCurrentProfile:@"gameDir"];
+    return [gameDir isEqualToString:COCO_PROFILE_GAME_DIR];
+}
+
+- (BOOL)cocoPackInstalled {
+    NSString *marker = [[self cocoPackDirectory] stringByAppendingPathComponent:COCO_PACK_MARKER];
+    return [NSFileManager.defaultManager fileExistsAtPath:marker];
+}
+
+- (void)cocoWriteMarker {
+    NSDictionary *manifest = self.cocoManifest;
+    NSDictionary *marker = @{
+        @"manifest": COCO_PACK_MANIFEST_URL,
+        @"generatedAt": manifest[@"generatedAt"] ?: @"",
+        @"minecraftVersion": manifest[@"minecraftVersion"] ?: @"",
+        @"fabricLoaderVersion": manifest[@"fabricLoaderVersion"] ?: @"",
+        @"fileCount": @([manifest[@"files"] count])
+    };
+    saveJSONToFile(marker, [[self cocoPackDirectory] stringByAppendingPathComponent:COCO_PACK_MARKER]);
+    NSLog(@"[CocoPack] Pack is up to date (%@)", marker[@"generatedAt"]);
+}
+
+// Relative path inside the pack directory, or nil if it could escape it
+- (NSString *)cocoSafePath:(id)relPath inDir:(NSString *)baseDir {
+    if (![relPath isKindOfClass:NSString.class] || [relPath length] == 0) {
+        return nil;
+    }
+    if ([relPath hasPrefix:@"/"] || [relPath containsString:@"\\"]) {
+        return nil;
+    }
+    for (NSString *part in [relPath componentsSeparatedByString:@"/"]) {
+        if (part.length == 0 || [part isEqualToString:@"."] || [part isEqualToString:@".."]) {
+            return nil;
+        }
+    }
+    return [baseDir stringByAppendingPathComponent:relPath];
+}
+
+// Download URL of a manifest entry, only if it stays on the Coco release pages
+- (NSURL *)cocoDownloadURL:(id)downloadName {
+    if (![downloadName isKindOfClass:NSString.class] || [downloadName length] == 0) {
+        return nil;
+    }
+    NSString *escaped = [downloadName stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet];
+    NSURL *url = [NSURL URLWithString:escaped relativeToURL:[NSURL URLWithString:COCO_PACK_MANIFEST_URL]].absoluteURL;
+    if (url == nil || ![url.absoluteString hasPrefix:COCO_PACK_URL_PREFIX]) {
+        return nil;
+    }
+    return url;
+}
+
+- (void)cocoPackTasksWithCompletion:(void (^)(NSArray *tasks))completion {
+    if (![self cocoIsCocoProfile]) {
+        completion(@[]);
+        return;
+    }
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:COCO_PACK_MANIFEST_URL]
+        cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
+    NSURLSessionDataTask *dataTask = [NSURLSession.sharedSession dataTaskWithRequest:request
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        NSInteger status = [response isKindOfClass:NSHTTPURLResponse.class] ? ((NSHTTPURLResponse *)response).statusCode : 0;
+        NSDictionary *manifest = nil;
+        if (data != nil && error == nil && status == 200) {
+            id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            if ([json isKindOfClass:NSDictionary.class] && [json[@"files"] isKindOfClass:NSArray.class]) {
+                manifest = json;
+            }
+        }
+        if (self.progress.cancelled) {
+            return;
+        }
+        if (manifest == nil) {
+            if ([self cocoPackInstalled]) {
+                NSLog(@"[CocoPack] Could not check for pack updates (HTTP %ld, %@), using the installed pack", (long)status, error.localizedDescription);
+                completion(@[]);
+            } else {
+                [self finishDownloadWithErrorString:localize(@"coco.pack.error.manifest", nil)];
+            }
+            return;
+        }
+        completion([self cocoCreateTasksFromManifest:manifest]);
+    }];
+    [dataTask resume];
+}
+
+- (NSArray *)cocoCreateTasksFromManifest:(NSDictionary *)manifest {
+    NSFileManager *fileManager = NSFileManager.defaultManager;
+    NSString *baseDir = [self cocoPackDirectory];
+    [fileManager createDirectoryAtPath:baseDir withIntermediateDirectories:YES attributes:nil error:nil];
+
+    NSMutableSet *packMods = [NSMutableSet new];
+    NSMutableArray *pending = [NSMutableArray new];
+    NSUInteger checked = 0;
+    for (NSDictionary *file in manifest[@"files"]) {
+        if (![file isKindOfClass:NSDictionary.class]) {
+            continue;
+        }
+        NSString *relPath = file[@"path"];
+        NSString *path = [self cocoSafePath:relPath inDir:baseDir];
+        NSURL *url = [self cocoDownloadURL:file[@"downloadName"]];
+        NSString *sha = file[@"sha1"];
+        if (path == nil || url == nil || ![sha isKindOfClass:NSString.class] || sha.length != 40) {
+            NSLog(@"[CocoPack] Skipping invalid manifest entry: %@", file[@"path"]);
+            continue;
+        }
+        sha = sha.lowercaseString;
+        checked++;
+        if ([relPath hasPrefix:@"mods/"]) {
+            [packMods addObject:relPath.lastPathComponent];
+            // "<mod>.jar.disabled" lets a player switch off a mod (e.g. Sodium with ANGLE)
+            if ([fileManager fileExistsAtPath:[path stringByAppendingString:@".disabled"]]) {
+                continue;
+            }
+        }
+        if ([fileManager fileExistsAtPath:path]) {
+            // "seed" files (most configs, options.txt, servers.dat) are only placed
+            // once, so the player's own settings are kept
+            if ([file[@"mode"] isEqual:@"seed"]) {
+                continue;
+            }
+            if ([sha isEqualToString:CocoSHA1OfFile(path)]) {
+                continue;
+            }
+        }
+        [pending addObject:@{
+            @"url": url.absoluteString,
+            @"path": path,
+            @"sha": sha,
+            @"name": relPath,
+            @"size": file[@"size"] ?: @(0)
+        }];
+    }
+
+    // Remove mods that are no longer part of the Coco pack
+    if (packMods.count > 0) {
+        NSString *modsDir = [baseDir stringByAppendingPathComponent:@"mods"];
+        for (NSString *name in [fileManager contentsOfDirectoryAtPath:modsDir error:nil]) {
+            if ([name.pathExtension.lowercaseString isEqualToString:@"jar"] && ![packMods containsObject:name]) {
+                NSLog(@"[CocoPack] Removing a mod that is no longer in the pack: %@", name);
+                [fileManager removeItemAtPath:[modsDir stringByAppendingPathComponent:name] error:nil];
+            }
+        }
+    }
+
+    self.cocoManifest = manifest;
+    self.cocoRemaining = pending.count;
+    NSLog(@"[CocoPack] %lu of %lu files need to be downloaded", (unsigned long)pending.count, (unsigned long)checked);
+    if (pending.count == 0) {
+        [self cocoWriteMarker];
+        return @[];
+    }
+
+    NSMutableArray *tasks = [NSMutableArray new];
+    for (NSDictionary *item in pending) {
+        NSURLSessionDownloadTask *task = [self cocoCreateDownloadTask:item[@"url"]
+            size:[item[@"size"] unsignedLongLongValue] sha:item[@"sha"] name:item[@"name"] toPath:item[@"path"]];
+        if (task) {
+            [tasks addObject:task];
+        }
+    }
+    return tasks;
+}
+
+- (NSURLSessionDownloadTask *)cocoCreateDownloadTask:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha name:(NSString *)name toPath:(NSString *)path {
+    NSString *partPath = [path stringByAppendingString:@".part"];
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
+    __block NSProgress *progress;
+    __block NSURLSessionDownloadTask *task = [self.manager downloadTaskWithRequest:request progress:nil
+    destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
+        NSLog(@"[CocoPack] Downloading %@", name);
+        progress = [self.manager downloadProgressForTask:task];
+        [NSFileManager.defaultManager createDirectoryAtPath:partPath.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
+        [NSFileManager.defaultManager removeItemAtPath:partPath error:nil];
+        return [NSURL fileURLWithPath:partPath];
+    } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
+        NSFileManager *fileManager = NSFileManager.defaultManager;
+        if (self.progress.cancelled) {
+            [fileManager removeItemAtPath:partPath error:nil];
+        } else if (error != nil) {
+            [fileManager removeItemAtPath:partPath error:nil];
+            [self finishDownloadWithError:error file:name];
+        } else if (![sha isEqualToString:CocoSHA1OfFile(partPath)]) {
+            [fileManager removeItemAtPath:partPath error:nil];
+            [self finishDownloadWithErrorString:[NSString stringWithFormat:@"Failed to verify file %@: SHA1 mismatch", name]];
+        } else {
+            [fileManager removeItemAtPath:path error:nil];
+            NSError *moveError = nil;
+            if (![fileManager moveItemAtPath:partPath toPath:path error:&moveError]) {
+                [self finishDownloadWithError:moveError file:name];
+                return;
+            }
+            progress.totalUnitCount = progress.completedUnitCount;
+            self.cocoRemaining--;
+            if (self.cocoRemaining == 0) {
+                [self cocoWriteMarker];
+            }
+        }
+    }];
+
+    if (task) {
+        [self addDownloadTaskToProgress:task size:size];
+        [self.fileList addObject:name];
+    }
+    return task;
 }
 
 #pragma mark - Modpack installation
@@ -319,7 +568,7 @@
     if (!accessible) {
         [self.progress cancel];
         if (show) {
-            [self finishDownloadWithErrorString:@"Minecraft can't be legally installed when logged in with a local account. Please switch to an online account to continue."];
+            [self finishDownloadWithErrorString:localize(@"coco.account.error.local_download", nil)];
         }
     }
     return accessible;
