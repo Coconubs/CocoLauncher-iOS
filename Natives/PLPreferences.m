@@ -1,3 +1,4 @@
+#import "CocoPerformance.h"
 #import "LauncherPreferences.h"
 #import "PLPreferences.h"
 #import "UIKit+hook.h"
@@ -10,19 +11,15 @@
 @implementation PLPreferences
 
 // CocoLauncher: fixed Java heap for the Coco Lite pack (~127 mods) instead of
-// "Auto RAM" (25% of the device memory is too little for the pack).
+// "Auto RAM" (25% of the device memory is too little for the pack). The value
+// also respects the memory limit iOS gives this process (see CocoPerformance).
 + (NSNumber *)cocoDefaultAllocatedMemory {
-    unsigned long long deviceMB = NSProcessInfo.processInfo.physicalMemory >> 20;
-    if (deviceMB >= 7000) {
-        return @(3072); // 8 GB devices
-    } else if (deviceMB >= 5000) {
-        return @(2560); // 6 GB devices
-    }
-    return @(2048);
+    return @(CocoRecommendedHeapMB());
 }
 
 + (id)defaultPrefForGlobal:(BOOL)global {
     // Preferences that can be isolated
+    NSString *cocoPreset = CocoDefaultPreset();
     NSMutableDictionary<NSString *, NSMutableDictionary *> *defaults = @{
         @"general": @{
             @"check_sha": @YES,
@@ -31,8 +28,10 @@
         }.mutableCopy,
         @"video": @{ // Video & Audio
             @"renderer": @ RENDERER_NAME_MOBILEGLUES,
-            @"resolution": @(100),
-            @"max_framerate": @YES,
+            // CocoLauncher: Low on old devices, Balanced otherwise
+            @"quality_preset": cocoPreset,
+            @"resolution": @(CocoPresetResolution(cocoPreset)),
+            @"max_framerate": @(CocoPresetMaxFramerate(cocoPreset)),
             @"performance_hud": @NO,
             @"fullscreen_airplay": @YES,
             @"silence_other_audio": @NO,
@@ -76,7 +75,10 @@
         }.mutableCopy,
         @"internal": @{
             @"isolated": @NO,
-            @"latest_version": [NSDictionary new]
+            @"latest_version": [NSDictionary new],
+            // CocoLauncher: preset whose Minecraft options are written on the next launch
+            @"coco_pending_preset": cocoPreset,
+            @"coco_settings_version": @0
         }.mutableCopy
     }.mutableCopy;
 

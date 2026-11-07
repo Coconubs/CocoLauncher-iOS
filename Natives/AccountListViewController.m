@@ -141,16 +141,18 @@
 }
 
 - (void)actionAddAccount:(UITableViewCell *)sender {
-    // CocoLauncher: explain the account rule (an owned copy of Minecraft: Java Edition is needed to download the game)
+    // CocoLauncher: Local account first. Microsoft is only needed once, to
+    // download the Minecraft files with an account that owns the game.
     UIAlertController *picker = [UIAlertController alertControllerWithTitle:nil message:localize(@"coco.account.hint", nil) preferredStyle:UIAlertControllerStyleActionSheet];
-    UIAlertAction *actionMicrosoft = [UIAlertAction actionWithTitle:localize(@"login.option.microsoft", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        [self actionLoginMicrosoft:sender];
-    }];
-    [picker addAction:actionMicrosoft];
-    UIAlertAction *actionLocal = [UIAlertAction actionWithTitle:localize(@"login.option.local", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+    UIAlertAction *actionLocal = [UIAlertAction actionWithTitle:localize(@"coco.account.option.local", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         [self actionLoginLocal:sender];
     }];
     [picker addAction:actionLocal];
+    picker.preferredAction = actionLocal;
+    UIAlertAction *actionMicrosoft = [UIAlertAction actionWithTitle:localize(@"coco.account.option.microsoft", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        [self actionLoginMicrosoft:sender];
+    }];
+    [picker addAction:actionMicrosoft];
     UIAlertAction *cancel = [UIAlertAction actionWithTitle:localize(@"Cancel", nil) style:UIAlertActionStyleCancel handler:nil];
     [picker addAction:cancel];
 
@@ -161,34 +163,36 @@
 }
 
 - (void)actionLoginLocal:(UIView *)sender {
-    if (getPrefBool(@"warnings.local_warn")) {
-        setPrefBool(@"warnings.local_warn", NO);
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:localize(@"login.warn.title.localmode", nil) message:localize(@"login.warn.message.localmode", nil) preferredStyle:UIAlertControllerStyleActionSheet];
-        alert.popoverPresentationController.sourceView = sender;
-        alert.popoverPresentationController.sourceRect = sender.bounds;
-        UIAlertAction *ok = [UIAlertAction actionWithTitle:localize(@"OK", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {[self actionLoginLocal:sender];}];
-        [alert addAction:ok];
-        [self presentViewController:alert animated:YES completion:nil];
-        return;
-    }
-    UIAlertController *controller = [UIAlertController alertControllerWithTitle:localize(@"Sign in", nil) message:localize(@"login.option.local", nil) preferredStyle:UIAlertControllerStyleAlert];
+    // CocoLauncher: the add-account sheet already explains the rule, so the
+    // upstream "offline mode is now local mode" warning is not shown.
+    UIAlertController *controller = [UIAlertController alertControllerWithTitle:localize(@"Sign in", nil) message:localize(@"coco.account.option.local", nil) preferredStyle:UIAlertControllerStyleAlert];
     [controller addTextFieldWithConfigurationHandler:^(UITextField *textField) {
         textField.placeholder = localize(@"login.alert.field.username", nil);
         textField.clearButtonMode = UITextFieldViewModeWhileEditing;
         textField.borderStyle = UITextBorderStyleRoundedRect;
+        textField.keyboardType = UIKeyboardTypeASCIICapable;
+        textField.autocorrectionType = UITextAutocorrectionTypeNo;
+        textField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+        textField.spellCheckingType = UITextSpellCheckingTypeNo;
     }];
     [controller addAction:[UIAlertAction actionWithTitle:localize(@"OK", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        NSArray *textFields = controller.textFields;
-        UITextField *usernameField = textFields[0];
-        if (usernameField.text.length < 3 || usernameField.text.length > 16) {
-            controller.message = localize(@"login.error.username.outOfRange", nil);
+        UITextField *usernameField = controller.textFields[0];
+        NSString *name = [usernameField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        usernameField.text = name;
+        NSString *accountPath = [NSString stringWithFormat:@"%s/accounts/%@.json", getenv("AME_HOME"), name];
+        // Minecraft player names: 3-16 characters, A-Z, a-z, 0-9 and _
+        if ([name rangeOfString:@"^[A-Za-z0-9_]{3,16}$" options:NSRegularExpressionSearch].location == NSNotFound) {
+            controller.message = localize(@"coco.account.error.name_chars", nil);
+            [self presentViewController:controller animated:YES completion:nil];
+        } else if ([NSFileManager.defaultManager fileExistsAtPath:accountPath]) {
+            controller.message = localize(@"coco.account.error.exists", nil);
             [self presentViewController:controller animated:YES completion:nil];
         } else {
             id callback = ^(id status, BOOL success) {
                 self.whenItemSelected();
                 [self dismissViewControllerAnimated:YES completion:nil];
             };
-            [[[LocalAuthenticator alloc] initWithInput:usernameField.text] loginWithCallback:callback];
+            [[[LocalAuthenticator alloc] initWithInput:name] loginWithCallback:callback];
         }
     }]];
     [controller addAction:[UIAlertAction actionWithTitle:localize(@"Cancel", nil) style:UIAlertActionStyleCancel handler:nil]];

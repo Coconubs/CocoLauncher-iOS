@@ -207,6 +207,15 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     setenv("JAVA_HOME", javaHome.UTF8String, 1);
     NSLog(@"[JavaLauncher] JAVA_HOME has been set to %@", javaHome);
 
+    // CocoLauncher (idea from Prisma Launcher): give MobileGlues a writable
+    // folder so its translated shader cache survives between launches. Without
+    // it the cache path falls back to /sdcard/MG, which does not exist on iOS.
+    NSString *mgDir = [@(getenv("AME_HOME")) stringByAppendingPathComponent:@"MG"];
+    [fm createDirectoryAtPath:mgDir withIntermediateDirectories:YES attributes:nil error:nil];
+    setenv("MG_DIR_PATH", mgDir.fileSystemRepresentation, 1);
+    // Keep vsync off even if a mod turns it back on (frame pacing is done by iOS)
+    setenv("COCO_FORCE_NO_VSYNC", "1", 1);
+
     int allocmem;
     if (getPrefBool(@"java.auto_ram")) {
         CGFloat autoRatio = getEntitlementValue(@"com.apple.private.memorystatus") ? 0.4 : 0.25;
@@ -266,6 +275,8 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     // Workaround random stack guard allocation crashes
     margv[++margc] = "-XX:+UnlockExperimentalVMOptions";
     margv[++margc] = "-XX:+DisablePrimordialThreadGuardPages";
+    // CocoLauncher: JVM crash reports next to the launcher logs
+    margv[++margc] = [NSString stringWithFormat:@"-XX:ErrorFile=%s/hs_err_pid%%p.log", getenv("AME_HOME")].UTF8String;
 
     // On iOS 26, use mirror mapped JIT by default
     if (@available(iOS 26.0, *)) {

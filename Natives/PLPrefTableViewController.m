@@ -147,6 +147,11 @@
         if ([item[@"hasDetail"] boolValue] && self.prefDetailVisible) {
             cell.detailTextLabel.text = localize(([NSString stringWithFormat:@"preference.detail.%@", key]), nil);
         }
+        // CocoLauncher: rows may show live text (e.g. memory status)
+        NSString *(^detailText)(void) = item[@"detailText"];
+        if (detailText) {
+            cell.detailTextLabel.text = detailText();
+        }
     }
 
     // Check if one has enable condition and call if it does
@@ -262,6 +267,21 @@
 
     sender.value = (int)sender.value;
     self.setPreference(section, key, @(sender.value));
+
+    // CocoLauncher: optional per-slider action and live detail text
+    NSDictionary *item = objc_getAssociatedObject(sender, @"item");
+    void(^invokeAction)(int) = item[@"action"];
+    if (invokeAction) {
+        invokeAction((int)sender.value);
+    }
+    NSString *(^detailText)(void) = item[@"detailText"];
+    if (detailText) {
+        UIView *cell = sender.superview;
+        while (cell && ![cell isKindOfClass:UITableViewCell.class]) {
+            cell = cell.superview;
+        }
+        ((UITableViewCell *)cell).detailTextLabel.text = detailText();
+    }
 }
 
 - (void)switchChanged:(UISwitch *)sender {

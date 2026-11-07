@@ -466,12 +466,29 @@ static void *ProgressObserverContext = &ProgressObserverContext;
     [self presentViewController:alert animated:YES completion:nil];
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // CocoLauncher: after 45 s show what to check; give up after 10 minutes
+        // instead of waiting forever in the background.
+        int ticks = 0;
         while (!isJITEnabled(false) && !jitWaitCancelled) {
             // Perform check for every 200ms
             usleep(1000*200);
+            ticks++;
+            if (ticks == 5 * 45) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    alert.message = localize(@"coco.jit.slow", nil);
+                });
+            } else if (ticks >= 5 * 600) {
+                jitWaitCancelled = YES;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.progressText.text = nil;
+                    [alert dismissViewControllerAnimated:YES completion:^{
+                        showDialog(localize(@"launcher.wait_jit.title", nil), localize(@"coco.jit.timeout", nil));
+                    }];
+                });
+            }
         }
         if (jitWaitCancelled) {
-            NSLog(@"[JIT] Waiting for JIT was cancelled");
+            NSLog(@"[JIT] Waiting for JIT was cancelled or timed out");
             return;
         }
         dispatch_async(dispatch_get_main_queue(), ^{

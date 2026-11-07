@@ -9,9 +9,17 @@ Launcher Minecraft: Java Edition cho iPhone/iPad, cài sẵn cho server **Coco C
 - File IPA: [Releases](https://github.com/Coconubs/CocoLauncher-iOS/releases)
 
 Cần:
-- Tài khoản Microsoft đã mua Minecraft: Java Edition.
+- Chơi bằng tài khoản Local (tên nhân vật). Nếu máy chưa có file Minecraft: đăng nhập 1 lần bằng tài khoản Microsoft đã mua Minecraft: Java Edition để tải game.
 - Cài bằng SideStore hoặc iloader (ESign/KSign không chạy được) và bật JIT bằng StikDebug.
-- Khuyên máy 8 GB RAM.
+- Khuyên máy 8 GB RAM. Máy yếu tự dùng cấu hình Thấp; chỉnh RAM và cấu hình Thấp / Cân bằng / Cao trong Cài đặt.
+
+## Cảm ơn
+
+- [Angel Aura Amethyst](https://github.com/AngelAuraMC/Amethyst-iOS) và PojavLauncher: nền tảng của CocoLauncher.
+- [Prisma Minecraft iOS Launcher](https://github.com/Gsjsjzhznsz/Prisma-Minecraft-iOS-Launcher) v5.1.0: ý tưởng tối ưu hiệu năng.
+- [Amethyst-iOS-25](https://github.com/catsruledogs/Amethyst-iOS-25): tham khảo tài khoản Local.
+
+Chi tiết: [THIRD_PARTY.md](THIRD_PARTY.md).
 
 ## Giấy phép
 

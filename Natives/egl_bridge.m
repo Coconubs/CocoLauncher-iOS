@@ -118,5 +118,7 @@ void* pojavCreateContext(basic_render_window_t* contextSrc) {
 
 void pojavSwapInterval(int interval) {
     if (!br_swap_interval) return;
+    // CocoLauncher: see COCO_FORCE_NO_VSYNC in JavaLauncher.m
+    if (getenv("COCO_FORCE_NO_VSYNC")) interval = 0;
     br_swap_interval(interval);
 }

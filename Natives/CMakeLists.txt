@@ -134,6 +134,7 @@ add_executable(AngelAuraAmethyst
 
   AccountListViewController.m
   AppDelegate.m
+  CocoPerformance.m
   CustomControlsViewController.m
   CustomControlsViewController+UndoManager.m
   DownloadProgressViewController.m

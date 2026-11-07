@@ -41,6 +41,9 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     // TODO: implement background download
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     configuration.timeoutIntervalForRequest = 86400;
+    // CocoLauncher (idea from Prisma Launcher): more parallel downloads for the
+    // thousands of small asset and pack files (iOS default is 4 per host)
+    configuration.HTTPMaximumConnectionsPerHost = 16;
     //backgroundSessionConfigurationWithIdentifier:@"net.kdt.pojavlauncher.downloadtask"];
     self.manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
     self.fileList = [NSMutableArray new];

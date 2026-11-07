@@ -5,6 +5,8 @@
 - [Angel Aura Amethyst](https://github.com/AngelAuraMC/Amethyst-iOS) (AngelAuraMC) và [PojavLauncher](https://github.com/PojavLauncherTeam) (bản quyền PojavLauncher 2021, Tran Hoang Khanh Duy) — GPLv3.
 - Những người đóng góp cho Amethyst: @crystall1nedev, @khanhduytran0, @artdeell, @Mathius-Boulay, @zhuowei, @jkcoxson, @Diatrus và cộng đồng.
 - Java runtime: OpenJDK do AngelAuraMC build cho iOS ([angelauramc-openjdk-build](https://github.com/AngelAuraMC/angelauramc-openjdk-build)), GPLv2 kèm Classpath Exception. Bản sao, giấy phép và mã nguồn: release `jre-mirror`.
+- Cảm ơn / Thanks to [Prisma Minecraft iOS Launcher](https://github.com/Gsjsjzhznsz/Prisma-Minecraft-iOS-Launcher) (Gsjsjzhznsz; nhánh từ Air và [herbrine8403](https://github.com/herbrine8403)), bản v5.1.0, GPLv3. CocoLauncher học từ mã của họ các ý tưởng: thư mục cache shader cho MobileGlues (`MG_DIR_PATH`), tải song song nhiều kết nối hơn, ghi log crash JVM, giữ tắt vsync. Mã trong CocoLauncher là tự viết lại, không chép nguyên văn. / Ideas reimplemented from Prisma: MobileGlues shader cache folder, more parallel downloads, JVM crash logs, vsync guard.
+- Cảm ơn / Thanks to [Amethyst-iOS-25](https://github.com/catsruledogs/Amethyst-iOS-25) (catsruledogs, GPLv3) và những người đóng góp: Ynnyny, DuyAnh662, T1k-T1k, NNSJ123, bcats4coding, jungwuk-ryu. Đã tham khảo cách họ làm tài khoản Local khi thiết kế luồng tài khoản Local của CocoLauncher. / Their local account flow was used as a reference.
 - Coco Cobblemon không liên quan tới Mojang hay Microsoft. Minecraft là thương hiệu của Mojang AB.
 
 ## Thành phần bên thứ ba / Third party components

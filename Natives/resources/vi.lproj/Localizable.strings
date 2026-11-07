@@ -220,9 +220,9 @@
 "preference.title.auto_ram" = "RAM tự động";
 "preference.detail.auto_ram" = "Bật tự động điều chỉnh RAM";
 "preference.warn.auto_ram" = "Tắt tùy chọn này trên thiết bị chưa được jailbreak có thể gây ra sự thiếu ổn định. Chú ý khi tiếp tục.";
-"preference.title.allocated_memory" = "Phân bổ bộ nhớ (MB)";
+"preference.title.allocated_memory" = "RAM cho Java (MB)";
 "preference.detail.allocated_memory" = "Điều chỉnh số lượng bộ nhớ được cung cấp cho Minecraft";
-"preference.warn.allocated_memory" = "Do những giới hạn của hệ điều hành, tùy chọn này có thể gây ra sự cố với mức phân bổ này hoặc cao hơn. Chú ý khi tiếp tục.";
+"preference.warn.allocated_memory" = "Mức này vượt giới hạn bộ nhớ iOS cho app. Game có thể bị iOS tắt khi đang tải hoặc đang chơi; nếu vậy hãy giảm xuống.";
 "preference.title.custom_env" = "Các chỉ số môi trường";
 "preference.detail.custom_env" = "Tùy chọn này đang được xây dựng. Trong khi chờ đợi, hãy tạo và chỉnh sửa custom_env.txt.";
 
@@ -286,6 +286,28 @@
 "controller_configurator.section.footer.controller_style" = "Hiển thị các tên nút điều khiển khác nhau trong bộ cấu hình này.";
 
 /* CocoLauncher */
-"coco.account.hint" = "Lần đầu: đăng nhập tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game. Tải xong, thêm tài khoản Local bằng tên nhân vật trên Coco để vào server.";
+"coco.account.hint" = "Tạo tài khoản Local bằng tên nhân vật của bạn trên Coco để chơi. Nếu máy chưa có file Minecraft, cần đăng nhập 1 lần bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game; tải xong có thể xoá tài khoản Microsoft đó.";
 "coco.account.error.local_download" = "Không thể tải Minecraft khi đang dùng tài khoản Local. Hãy chọn tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game lần đầu. Tải xong mới chuyển sang tài khoản Local.";
 "coco.pack.error.manifest" = "Không tải được danh sách gói Coco Cobblemon. Kiểm tra kết nối mạng rồi thử lại (lần đầu nên dùng Wi-Fi, khoảng 460 MB).";
+"coco.account.option.local" = "Tài khoản Local (tên nhân vật)";
+"coco.account.option.microsoft" = "Microsoft (chỉ để tải game lần đầu)";
+"coco.account.error.name_chars" = "Tên dài 3-16 ký tự, chỉ gồm chữ cái không dấu, số và dấu gạch dưới (_).";
+"coco.account.error.exists" = "Đã có tài khoản mang tên này.";
+"preference.title.quality_preset" = "Cấu hình hiệu năng";
+"preference.detail.quality_preset" = "Thấp: độ phân giải 50%, khoá 30 FPS, tầm nhìn ngắn, ít hiệu ứng (hợp máy cũ hoặc máy nóng). Cân bằng: 75%, 60 FPS. Cao: độ phân giải gốc, 120 FPS trên màn ProMotion. Tuỳ chỉnh: giữ giá trị bạn tự đặt. Thiết lập trong game được ghi ở lần chơi kế tiếp; vẫn đổi lại được trong game.";
+"coco.preset.low" = "Thấp";
+"coco.preset.balanced" = "Cân bằng";
+"coco.preset.high" = "Cao";
+"coco.preset.custom" = "Tuỳ chỉnh";
+"preference.title.memory_status" = "Bộ nhớ thiết bị";
+"preference.title.memory_recommended" = "Dùng RAM khuyến nghị";
+"coco.memory.status" = "RAM máy %.1f GB · iOS cho app này %@ · Increased Memory Limit: %@\nJava đang dùng %.1f GB · khuyến nghị %d MB · an toàn tối đa %d MB";
+"coco.memory.entitlement.on" = "đã bật";
+"coco.memory.entitlement.off" = "chưa bật";
+"coco.memory.recommended" = "%d MB cho gói Coco trên máy này";
+"coco.memory.selected" = "Cấp cho Java %d MB (%.2f GB)";
+"coco.memory.too_high" = "Vượt mức an toàn: iOS có thể tắt game khi hết bộ nhớ.";
+"coco.memory.help.on" = "Bản cài này được ký kèm quyền Increased Memory Limit nên iOS cho dùng nhiều bộ nhớ hơn. Giữ RAM Java không vượt mức an toàn hiển thị; phần còn lại dành cho mã gốc và đồ hoạ của Minecraft.";
+"coco.memory.help.off" = "Bản cài này CHƯA được ký kèm quyền Increased Memory Limit nên iOS giới hạn bộ nhớ thấp hơn. App không tự bật được quyền này, vì nó phụ thuộc cách ký app. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền. Trong lúc chưa có, giữ RAM Java không vượt mức an toàn.";
+"coco.jit.slow" = "Vẫn chưa bật được JIT. Kiểm tra LocalDevVPN đã kết nối (đang bật Wi-Fi), rồi mở StikDebug bật JIT cho CocoLauncher. Có thể bấm Huỷ rồi bấm Chơi lại.";
+"coco.jit.timeout" = "Đã dừng chờ JIT sau 10 phút. Bật LocalDevVPN, mở StikDebug rồi bấm Chơi lại.";

@@ -1,5 +1,7 @@
 #import "MinecraftOptionUtils.h"
 #import "environ.h"
+#import "CocoPerformance.h"
+#import "LauncherPreferences.h"
 
 @interface MinecraftOptionUtils ()
 @property(nonatomic) NSMutableArray<NSString *> *lineList;
@@ -21,6 +23,17 @@
     [options setDefaultForKey:@"particles" value:@"1"];
     [options setDefaultForKey:@"renderDistance" value:@"2"];
     [options setDefaultForKey:@"simulationDistance" value:@"5"];
+    // CocoLauncher: write the Low/Balanced/High preset once after it is picked,
+    // so later changes made in the game's own video settings are kept.
+    NSString *pending = getPrefObject(@"internal.coco_pending_preset");
+    if (pending.length > 0) {
+        NSDictionary<NSString *, NSString *> *values = CocoPresetGameOptions(pending);
+        for (NSString *key in values) {
+            [options setKey:key value:values[key]];
+        }
+        NSLog(@"[CocoLauncher] Applied %@ preset to options.txt (%lu values)", pending, (unsigned long)values.count);
+        setPrefObject(@"internal.coco_pending_preset", @"");
+    }
     [options save];
 }
 

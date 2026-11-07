@@ -5,6 +5,7 @@
 
 #import "AppDelegate.h"
 #import "CocoConfig.h"
+#import "CocoPerformance.h"
 #import "customcontrols/CustomControlsUtils.h"
 #import "JavaLauncher.h"
 #import "LauncherPreferences.h"
@@ -362,6 +363,11 @@ int main(int argc, char *argv[]) {
     toggleIsolatedPref(NO);
     [PLProfiles updateCurrent];
     init_setupCoco();
+    CocoMigrateSettings();
+    NSLog(@"[CocoLauncher] RAM %d MB, process limit %d MB, increased-memory-limit %@, heap %ld MB (recommended %d, safe max %d), preset %@",
+        CocoDeviceMemoryMB(), CocoProcessMemoryLimitMB(), CocoHasIncreasedMemoryLimit() ? @"YES" : @"NO",
+        (long)getPrefInt(@"java.allocated_memory"), CocoRecommendedHeapMB(), CocoSafeMaxHeapMB(),
+        getPrefObject(@"video.quality_preset"));
     init_setupAccounts();
     init_setupCustomControls();
 

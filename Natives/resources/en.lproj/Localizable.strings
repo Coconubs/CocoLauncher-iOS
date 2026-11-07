@@ -255,7 +255,7 @@
 "preference.warn.auto_ram" = "Disabling this option on an unjailbroken device can create instability if altered. Proceed with caution.";
 "preference.title.allocated_memory" = "Memory allocation (MB)";
 "preference.detail.allocated_memory" = "Controls how much memory is given to Minecraft";
-"preference.warn.allocated_memory" = "Due to limitations in the operating system itself, this option may cause instability at this and higher values. Proceed with caution.";
+"preference.warn.allocated_memory" = "This is more than fits under the memory limit iOS gives this app. The game may be closed by iOS while loading or playing. Lower it if that happens.";
 "preference.title.custom_env" = "Environment variables";
 "preference.detail.custom_env" = "This option is under construction. Create and edit custom_env.txt in the meantime.";
 
@@ -334,6 +334,28 @@
 "controller_configurator.section.footer.controller_style" = "Show different controller button names in this configurator.";
 
 /* CocoLauncher */
-"coco.account.hint" = "First time: sign in with a Microsoft account that OWNS Minecraft: Java Edition, so the game can be downloaded. After that, add a Local account with your Coco character name to play on Coco.";
+"coco.account.hint" = "Create a Local account with your Coco character name to play. If the Minecraft files are not on this device yet, sign in once with a Microsoft account that OWNS Minecraft: Java Edition so the game can be downloaded; you can remove that account afterwards.";
 "coco.account.error.local_download" = "Minecraft can't be legally installed when logged in with a local account. Please switch to an online account to continue. (Coco: the first download needs a Microsoft account that owns Minecraft: Java Edition.)";
 "coco.pack.error.manifest" = "Could not download the Coco Cobblemon file list. Check your internet connection (Wi-Fi is recommended for the first download, about 460 MB) and try again.";
+"coco.account.option.local" = "Local account (character name)";
+"coco.account.option.microsoft" = "Microsoft (only to download the game the first time)";
+"coco.account.error.name_chars" = "Use 3-16 characters: letters A-Z, digits and underscore (_) only.";
+"coco.account.error.exists" = "An account with this name already exists.";
+"preference.title.quality_preset" = "Performance preset";
+"preference.detail.quality_preset" = "Low: 50% resolution, 30 FPS cap, short view distance, fewer effects (best for old or hot devices). Balanced: 75%, 60 FPS. High: full resolution, 120 FPS on ProMotion. Custom keeps your own values. Game options are written on the next launch; you can still change them in the game.";
+"coco.preset.low" = "Low";
+"coco.preset.balanced" = "Balanced";
+"coco.preset.high" = "High";
+"coco.preset.custom" = "Custom";
+"preference.title.memory_status" = "Device memory";
+"preference.title.memory_recommended" = "Use recommended memory";
+"coco.memory.status" = "RAM %.1f GB · iOS limit for this app %@ · Increased Memory Limit: %@\nJava heap %.1f GB · recommended %d MB · safe up to %d MB";
+"coco.memory.entitlement.on" = "enabled";
+"coco.memory.entitlement.off" = "not enabled";
+"coco.memory.recommended" = "%d MB for the Coco pack on this device";
+"coco.memory.selected" = "%d MB (%.2f GB) given to Java";
+"coco.memory.too_high" = "Above the safe value: iOS may close the game when memory runs out.";
+"coco.memory.help.on" = "This copy is signed with the Increased Memory Limit entitlement, so iOS lets it use more memory. Keep the Java heap at or below the safe value shown; the rest is needed by Minecraft's native code and graphics.";
+"coco.memory.help.off" = "This copy is NOT signed with the Increased Memory Limit entitlement, so iOS keeps this app at a lower memory limit. The app cannot turn it on by itself: it depends on how the app was signed. Installing with iloader 2.4.1 or newer (Import IPA) adds it. Until then, keep the Java heap at or below the safe value.";
+"coco.jit.slow" = "JIT is still not enabled. Check that LocalDevVPN is connected (Wi-Fi on), then open StikDebug and enable JIT for CocoLauncher. You can also tap Cancel and press Play again.";
+"coco.jit.timeout" = "Stopped waiting for JIT after 10 minutes. Connect LocalDevVPN, open StikDebug, then press Play again.";

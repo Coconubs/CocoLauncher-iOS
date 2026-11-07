@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 
+#import "CocoPerformance.h"
 #import "DBNumberedSlider.h"
 #import "LauncherNavigationController.h"
 #import "LauncherMenuViewController.h"
@@ -149,6 +150,24 @@
         ], @[
             // Video and renderer settings
             @{@"icon": @"video"},
+            // CocoLauncher: Low / Balanced / High presets (old devices start on Low)
+            @{@"key": @"quality_preset",
+              @"hasDetail": @YES,
+              @"icon": @"speedometer",
+              @"type": self.typePickField,
+              @"enableCondition": whenNotInGame,
+              @"pickKeys": @[COCO_PRESET_LOW, COCO_PRESET_BALANCED, COCO_PRESET_HIGH, COCO_PRESET_CUSTOM],
+              @"pickList": @[
+                  localize(@"coco.preset.low", nil),
+                  localize(@"coco.preset.balanced", nil),
+                  localize(@"coco.preset.high", nil),
+                  localize(@"coco.preset.custom", nil)
+              ],
+              @"action": ^void(NSString *preset) {
+                  CocoApplyPreset(preset);
+                  [self.tableView reloadData];
+              }
+            },
             @{@"key": @"renderer",
               @"hasDetail": @YES,
               @"icon": @"cpu",
@@ -162,7 +181,10 @@
               @"icon": @"viewfinder",
               @"type": self.typeSlider,
               @"min": @(25),
-              @"max": @(150)
+              @"max": @(150),
+              @"action": ^void(int value) {
+                  setPrefObject(@"video.quality_preset", COCO_PRESET_CUSTOM);
+              }
             },
             @{@"key": @"max_framerate",
               @"hasDetail": @YES,
@@ -170,6 +192,9 @@
               @"type": self.typeSwitch,
               @"enableCondition": ^BOOL(){
                   return whenNotInGame() && (UIScreen.mainScreen.maximumFramesPerSecond > 60);
+              },
+              @"action": ^void(BOOL enabled) {
+                  setPrefObject(@"video.quality_preset", COCO_PRESET_CUSTOM);
               }
             },
             @{@"key": @"performance_hud",
@@ -331,6 +356,32 @@
                 @"type": self.typeTextField,
                 @"enableCondition": whenNotInGame
             },
+            // CocoLauncher: device RAM, process limit and increased-memory-limit status
+            @{@"key": @"memory_status",
+                @"icon": @"info.circle",
+                @"type": self.typeButton,
+                @"detailText": ^NSString *(){
+                    return CocoMemoryStatusText();
+                },
+                @"action": ^void(){
+                    showDialog(localize(@"preference.title.memory_status", nil),
+                        localize(CocoHasIncreasedMemoryLimit() ? @"coco.memory.help.on" : @"coco.memory.help.off", nil));
+                }
+            },
+            @{@"key": @"memory_recommended",
+                @"icon": @"wand.and.stars",
+                @"type": self.typeButton,
+                @"enableCondition": ^BOOL(){
+                    return !getPrefBool(@"java.auto_ram") && whenNotInGame();
+                },
+                @"detailText": ^NSString *(){
+                    return [NSString stringWithFormat:localize(@"coco.memory.recommended", nil), CocoRecommendedHeapMB()];
+                },
+                @"action": ^void(){
+                    setPrefObject(@"java.allocated_memory", @(CocoRecommendedHeapMB()));
+                    [self.tableView reloadData];
+                }
+            },
             @{@"key": @"auto_ram",
                 @"hasDetail": @YES,
                 @"icon": @"slider.horizontal.3",
@@ -351,10 +402,20 @@
                 @"enableCondition": ^BOOL(){
                     return !getPrefBool(@"java.auto_ram") && whenNotInGame();
                 },
+                // CocoLauncher: warn above what fits under the iOS process limit
                 @"warnCondition": ^BOOL(DBNumberedSlider *view){
-                    return view.value >= NSProcessInfo.processInfo.physicalMemory / 1048576 * 0.37;
+                    return view.value > CocoSafeMaxHeapMB();
                 },
-                @"warnKey": @"mem_warn"
+                @"warnKey": @"mem_warn",
+                @"detailText": ^NSString *(){
+                    int value = (int)getPrefInt(@"java.allocated_memory");
+                    NSString *text = [NSString stringWithFormat:localize(@"coco.memory.selected", nil), value, value / 1024.0];
+                    if (value > CocoSafeMaxHeapMB()) {
+                        text = [text stringByAppendingFormat:@"
+%@", localize(@"coco.memory.too_high", nil)];
+                    }
+                    return text;
+                }
             }
         ], @[
             // Debug settings - only recommended for developer use
