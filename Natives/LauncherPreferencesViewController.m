@@ -411,8 +411,7 @@
                     int value = (int)getPrefInt(@"java.allocated_memory");
                     NSString *text = [NSString stringWithFormat:localize(@"coco.memory.selected", nil), value, value / 1024.0];
                     if (value > CocoSafeMaxHeapMB()) {
-                        text = [text stringByAppendingFormat:@"
-%@", localize(@"coco.memory.too_high", nil)];
+                        text = [text stringByAppendingFormat:@"\n%@", localize(@"coco.memory.too_high", nil)];
                     }
                     return text;
                 }
