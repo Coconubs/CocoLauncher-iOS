@@ -1,0 +1,134 @@
+name: Mirror Java runtime
+
+# One-off job. The Makefile of Angel Aura Amethyst downloads its iOS Java
+# runtimes from assets.angelauramc.dev, which no longer resolves (checked
+# 2026-11-07). CocoLauncher keeps its own copy of the Java 21 runtime on the
+# "jre-mirror" release of this repository.
+#
+# Origin of the runtime: the public CI build of Amethyst-iOS
+# (run 37242039920, commit f98c413, artifact "org.angelauramc.amethyst-ios.ipa").
+# The archive is checked against the sha256 digest published by GitHub for
+# that artifact before anything is extracted.
+#
+# The runtime is an OpenJDK build (GPL-2.0 with Classpath Exception). The
+# licence files are added back and the corresponding sources are published
+# next to the runtime on the same release.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPSTREAM_REPO: AngelAuraMC/Amethyst-iOS
+      UPSTREAM_RUN: '37242039920'
+      UPSTREAM_ARTIFACT: '11379735548'
+      UPSTREAM_ARTIFACT_SHA256: 05147549cadeca7c1ebbd1f006b66818db45479c0b0bd79cb10ecadda69879c1
+      BUILD_SCRIPTS_REPO: AngelAuraMC/angelauramc-openjdk-build
+      BUILD_SCRIPTS_BRANCH: buildjre17-21
+    steps:
+      - name: Download the Amethyst CI build
+        run: |
+          set -euo pipefail
+          mkdir -p work && cd work
+          if gh api "repos/$UPSTREAM_REPO/actions/artifacts/$UPSTREAM_ARTIFACT/zip" > artifact.zip 2> gh.err && [ -s artifact.zip ]; then
+            echo "Downloaded through the GitHub API"
+          else
+            cat gh.err || true
+            echo "GitHub API download refused, using nightly.link (checked against the GitHub digest below)"
+            curl -fSL --retry 3 -o artifact.zip "https://nightly.link/$UPSTREAM_REPO/actions/artifacts/$UPSTREAM_ARTIFACT.zip"
+          fi
+          echo "$UPSTREAM_ARTIFACT_SHA256  artifact.zip" | sha256sum -c -
+          unzip -o artifact.zip
+          ls -la
+
+      - name: Extract the Java 21 runtime
+        run: |
+          set -euo pipefail
+          cd work
+          IPA="$(ls *.ipa | head -n 1)"
+          echo "IPA: $IPA"
+          unzip -q "$IPA" 'Payload/AngelAuraAmethyst.app/java_runtimes/java-21-openjdk/*' -d ipa
+          mv ipa/Payload/AngelAuraAmethyst.app/java_runtimes/java-21-openjdk jre21
+          rm -rf ipa "$IPA" artifact.zip
+          echo "--- release file"
+          cat jre21/release
+          echo "--- size"
+          du -sh jre21
+          find jre21 -maxdepth 2 | sort | head -n 60
+
+      - name: Add licence files, notice and sources
+        run: |
+          set -euo pipefail
+          cd work
+          for f in LICENSE ASSEMBLY_EXCEPTION ADDITIONAL_LICENSE_INFO; do
+            curl -fSL --retry 3 -o "jre21/$f" "https://raw.githubusercontent.com/openjdk/jdk21u/master/$f"
+          done
+          SOURCE_FIELD="$(grep '^SOURCE=' jre21/release | sed 's/^SOURCE=//; s/"//g' || true)"
+          JAVA_VERSION="$(grep '^JAVA_VERSION=' jre21/release | sed 's/^JAVA_VERSION=//; s/"//g' || true)"
+          echo "JAVA_VERSION=$JAVA_VERSION SOURCE=$SOURCE_FIELD"
+
+          # Build scripts and patches used by AngelAuraMC for the iOS runtimes
+          git clone --depth 1 -b "$BUILD_SCRIPTS_BRANCH" "https://github.com/$BUILD_SCRIPTS_REPO" build-scripts
+          BUILD_SCRIPTS_COMMIT="$(git -C build-scripts rev-parse HEAD)"
+          rm -rf build-scripts/.git
+          tar -czf angelauramc-openjdk-build-src.tar.gz build-scripts
+          rm -rf build-scripts
+
+          # OpenJDK source at the commit recorded in the runtime's release file
+          JDK_COMMIT="$(printf '%s' "$SOURCE_FIELD" | grep -oE '[0-9a-f]{12,40}' | head -n 1 || true)"
+          JDK_SOURCE_NOTE="not found in the release file"
+          if [ -n "$JDK_COMMIT" ]; then
+            for repo in openjdk/jdk21u openjdk/jdk21u-dev; do
+              if curl -fSL --retry 3 -o openjdk21-src.tar.gz "https://github.com/$repo/archive/$JDK_COMMIT.tar.gz"; then
+                JDK_SOURCE_NOTE="https://github.com/$repo/tree/$JDK_COMMIT (archive: openjdk21-src.tar.gz)"
+                break
+              fi
+            done
+          fi
+
+          cat > jre21/COCOLAUNCHER-NOTICE.txt <<EOF
+          Java runtime bundled with CocoLauncher iOS
+          ==========================================
+
+          This directory is an OpenJDK ${JAVA_VERSION} runtime built for iOS arm64 by the
+          AngelAuraMC project for Angel Aura Amethyst. CocoLauncher redistributes it
+          unchanged, except that the licence files below were added back.
+
+          Licence: GNU General Public License, version 2, with the Classpath Exception
+          (see LICENSE, ASSEMBLY_EXCEPTION and ADDITIONAL_LICENSE_INFO).
+
+          Taken from: https://github.com/${UPSTREAM_REPO}/actions/runs/${UPSTREAM_RUN}
+            artifact ${UPSTREAM_ARTIFACT}, sha256 ${UPSTREAM_ARTIFACT_SHA256}
+          Build scripts and patches: https://github.com/${BUILD_SCRIPTS_REPO}/tree/${BUILD_SCRIPTS_COMMIT}
+          OpenJDK source: ${JDK_SOURCE_NOTE}
+          release file SOURCE field: ${SOURCE_FIELD}
+
+          Copies of these sources are published on the "jre-mirror" release of
+          https://github.com/Coconubs/CocoLauncher-iOS
+          EOF
+          sed -i 's/^          //' jre21/COCOLAUNCHER-NOTICE.txt
+          cat jre21/COCOLAUNCHER-NOTICE.txt
+          cp jre21/COCOLAUNCHER-NOTICE.txt NOTICE.txt
+
+      - name: Pack
+        run: |
+          set -euo pipefail
+          cd work
+          tar -C jre21 -cJf jre21-ios-aarch64.tar.xz .
+          ls -la
+          sha256sum jre21-ios-aarch64.tar.xz *.tar.gz NOTICE.txt > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload to the jre-mirror release
+        run: |
+          set -euo pipefail
+          cd work
+          files="jre21-ios-aarch64.tar.xz SHA256SUMS NOTICE.txt angelauramc-openjdk-build-src.tar.gz"
+          if [ -f openjdk21-src.tar.gz ]; then files="$files openjdk21-src.tar.gz"; fi
+          gh release upload jre-mirror $files --clobber -R "$GITHUB_REPOSITORY"
