@@ -18,7 +18,7 @@
 @property(nonatomic) CocoSlider *ramSlider;
 @property(nonatomic) UILabel *ramValue;
 @property(nonatomic) UILabel *ramNote;
-@property(nonatomic) UIButton *ramEntitlement;
+@property(nonatomic) UILabel *ramEntitlement;
 @property(nonatomic) int ramStep;
 
 @property(nonatomic) CocoSlider *resolutionSlider;
@@ -175,8 +175,7 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 
     NSString *version = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     UILabel *about = CocoLabel([NSString stringWithFormat:localize(@"coco.settings.about", nil), version], CocoFontRegular, 15, COCO_DIM);
-    about.adjustsFontSizeToFitWidth = YES;
-    about.minimumScaleFactor = 0.7;
+    about.numberOfLines = 2;
     [card addSubview:about];
 
     self.verifyButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -194,8 +193,10 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     NSLayoutConstraint *preferredWidth = [card.widthAnchor constraintEqualToConstant:900];
     preferredWidth.priority = UILayoutPriorityDefaultHigh;
+    // Below the labels' compression resistance (750): when the card can't grow,
+    // the body scrolls instead of squashing labels
     NSLayoutConstraint *fitHeight = [scroll.heightAnchor constraintEqualToAnchor:columns.heightAnchor constant:48];
-    fitHeight.priority = UILayoutPriorityDefaultHigh;
+    fitHeight.priority = 500;
     [NSLayoutConstraint activateConstraints:@[
         [backdrop.topAnchor constraintEqualToAnchor:self.view.topAnchor],
         [backdrop.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
@@ -274,12 +275,12 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     self.ramNote = [self noteLabel:@""];
     [column addArrangedSubview:self.ramNote];
 
-    self.ramEntitlement = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.ramEntitlement.translatesAutoresizingMaskIntoConstraints = NO;
-    self.ramEntitlement.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
-    self.ramEntitlement.titleLabel.numberOfLines = 0;
-    self.ramEntitlement.titleLabel.font = CocoFont(CocoFontSemiBold, 13);
-    [self.ramEntitlement addTarget:self action:@selector(showMemoryHelp) forControlEvents:UIControlEventTouchUpInside];
+    // A label (not a button) so that two lines get their full height
+    self.ramEntitlement = CocoLabel(@"", CocoFontSemiBold, 13, COCO_GOLD);
+    self.ramEntitlement.numberOfLines = 0;
+    self.ramEntitlement.userInteractionEnabled = YES;
+    self.ramEntitlement.accessibilityTraits = UIAccessibilityTraitButton;
+    [self.ramEntitlement addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(showMemoryHelp)]];
     [column addArrangedSubview:self.ramEntitlement];
     [column setCustomSpacing:4 afterView:self.ramNote];
 
@@ -382,9 +383,10 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 - (void)updateRamTexts:(int)ram {
     self.ramValue.text = [NSString stringWithFormat:@"%d MB", ram];
     int limit = CocoProcessMemoryLimitMB();
-    NSString *limitText = limit > 0 ? [NSString stringWithFormat:@"%.1f GB", limit / 1024.0] : @"?";
-    NSString *note = [NSString stringWithFormat:localize(@"coco.settings.ram_note", nil),
-        CocoDeviceMemoryMB() / 1024.0, limitText, CocoRecommendedHeapMB()];
+    NSString *limitText = [NSString stringWithFormat:@"%.1f GB", limit / 1024.0];
+    NSString *note = limit > 0
+        ? [NSString stringWithFormat:localize(@"coco.settings.ram_note", nil), CocoDeviceMemoryMB() / 1024.0, limitText, CocoRecommendedHeapMB()]
+        : [NSString stringWithFormat:localize(@"coco.settings.ram_note_nolimit", nil), CocoDeviceMemoryMB() / 1024.0, CocoRecommendedHeapMB()];
     BOOL tooHigh = ram > CocoSafeMaxHeapMB();
     if (tooHigh) {
         note = [note stringByAppendingFormat:@"\n%@", localize(@"coco.memory.too_high", nil)];
@@ -393,8 +395,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     self.ramNote.textColor = tooHigh ? COCO_RED : COCO_DIM;
 
     BOOL entitled = CocoHasIncreasedMemoryLimit();
-    [self.ramEntitlement setTitle:localize(entitled ? @"coco.settings.ram_entitlement_on" : @"coco.settings.ram_entitlement_off", nil) forState:UIControlStateNormal];
-    [self.ramEntitlement setTitleColor:entitled ? COCO_GREEN : COCO_GOLD forState:UIControlStateNormal];
+    self.ramEntitlement.text = localize(entitled ? @"coco.settings.ram_entitlement_on" : @"coco.settings.ram_entitlement_off", nil);
+    self.ramEntitlement.textColor = entitled ? COCO_GREEN : COCO_GOLD;
 }
 
 - (void)updatePresetButtons {

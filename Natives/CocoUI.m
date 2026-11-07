@@ -677,8 +677,9 @@ BOOL CocoServerPing(NSString *host, int port, int timeoutMs, int *online, int *m
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     NSLayoutConstraint *preferredWidth = [card.widthAnchor constraintEqualToConstant:460];
     preferredWidth.priority = UILayoutPriorityDefaultHigh;
+    // Below the labels' compression resistance: scroll instead of squashing text
     NSLayoutConstraint *fitHeight = [scroll.heightAnchor constraintEqualToAnchor:stack.heightAnchor constant:44];
-    fitHeight.priority = UILayoutPriorityDefaultHigh;
+    fitHeight.priority = 500;
     [NSLayoutConstraint activateConstraints:@[
         [card.centerXAnchor constraintEqualToAnchor:safe.centerXAnchor],
         [card.centerYAnchor constraintEqualToAnchor:safe.centerYAnchor],

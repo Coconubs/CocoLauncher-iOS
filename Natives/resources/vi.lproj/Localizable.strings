@@ -378,3 +378,4 @@
 "coco.settings.verify_done" = "✓ Lần CHƠI tới sẽ kiểm tra lại toàn bộ file";
 "preference.title.coco_home_ui" = "Giao diện Coco";
 "preference.detail.coco_home_ui" = "Tắt để dùng giao diện Amethyst đầy đủ (quản lý tài khoản, hồ sơ, thư mục game).";
+"coco.settings.ram_note_nolimit" = "Máy có %.1f GB RAM · khuyên dùng %d MB";

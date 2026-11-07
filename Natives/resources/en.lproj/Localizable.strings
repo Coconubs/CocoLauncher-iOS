@@ -426,3 +426,4 @@
 "coco.settings.verify_done" = "✓ All files will be checked on the next PLAY";
 "preference.title.coco_home_ui" = "Coco interface";
 "preference.detail.coco_home_ui" = "Turn off to use the full Amethyst interface (accounts, profiles, game folders).";
+"coco.settings.ram_note_nolimit" = "Device %.1f GB RAM · recommended %d MB";

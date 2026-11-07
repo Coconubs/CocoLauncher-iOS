@@ -111,7 +111,8 @@ jobs:
             name="$1"; wait="$2"; shift 2
             xcrun simctl terminate "$UDID" "$BUNDLE_ID" > /dev/null 2>&1 || true
             sleep 2
-            xcrun simctl launch "$UDID" "$BUNDLE_ID" "$@" >> out/launch.txt 2>&1
+            # Vietnamese, like most players
+            xcrun simctl launch "$UDID" "$BUNDLE_ID" -AppleLanguages "(vi)" -AppleLocale vi_VN "$@" >> out/launch.txt 2>&1
             sleep "$wait"
             xcrun simctl io "$UDID" screenshot "out/$name.png" && echo "saved $name.png"
           }
