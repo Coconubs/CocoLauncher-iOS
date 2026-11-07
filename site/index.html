@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CocoLauncher iOS</title>
+<meta name="description" content="CocoLauncher cho iPhone/iPad: chơi Coco Cobblemon (Minecraft Java). Cài bằng SideStore.">
+<link rel="icon" href="icon-256.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root {
+  --bg: #f4f8fc;
+  --card: #ffffff;
+  --text: #13202f;
+  --muted: #5a6b7d;
+  --line: #d9e3ee;
+  --accent: #2f7fd1;
+  --accent-text: #ffffff;
+  --warn-bg: #fff6e0;
+  --warn-line: #f0d28a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1722;
+    --card: #182333;
+    --text: #e8eef5;
+    --muted: #9fb0c3;
+    --line: #2a3a50;
+    --accent: #5aa6ee;
+    --accent-text: #0b1420;
+    --warn-bg: #2b2412;
+    --warn-line: #6a5522;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+header { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; }
+header img { width: 72px; height: 72px; border-radius: 16px; }
+h1 { font-size: 1.5rem; margin: 0; }
+.sub { color: var(--muted); margin: 2px 0 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 14px 0; }
+.btn { display: block; text-align: center; text-decoration: none; font-weight: 600; padding: 13px 14px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-text); }
+.hint { color: var(--muted); font-size: .9rem; margin: 4px 0 0; }
+.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+h2 { font-size: 1.05rem; margin: 0 0 8px; }
+ul, ol { margin: 6px 0 0; padding-left: 22px; }
+li { margin: 4px 0; }
+code { font-size: .88em; word-break: break-all; }
+footer { color: var(--muted); font-size: .85rem; margin-top: 28px; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="">
+    <div>
+      <h1>CocoLauncher iOS</h1>
+      <p class="sub">Chơi Coco Cobblemon (Minecraft Java) trên iPhone/iPad</p>
+      <p class="sub" id="ver">Đang đọc phiên bản…</p>
+    </div>
+  </header>
+
+  <div class="card warn">
+    <h2>Điều kiện</h2>
+    <ul>
+      <li>Tài khoản Microsoft <b>đã mua Minecraft: Java Edition</b> (để tải game lần đầu).</li>
+      <li>Ngồi máy tính <b>1 lần</b> để cài SideStore và tạo pairing (iloader).</li>
+      <li>App <b>LocalDevVPN</b> (App Store) và <b>StikDebug</b> để bật JIT.</li>
+      <li>Khuyên máy <b>8 GB RAM</b> (iPhone 15 Pro, 15 Pro Max, 16 trở lên).</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Cài đặt</h2>
+    <a class="btn primary" href="them-nguon.html">Thêm nguồn Coco vào SideStore</a>
+    <p class="hint">Sau đó vào SideStore › Browse › Coco Cobblemon › CocoLauncher › Install.</p>
+    <a class="btn" id="install" href="cai.html">Cài thẳng bằng SideStore</a>
+    <a class="btn" id="ipa" href="https://github.com/Coconubs/CocoLauncher-iOS/releases">Tải file IPA (dùng với iloader › Import IPA)</a>
+    <p class="hint">Địa chỉ nguồn: <code>https://coconubs.github.io/CocoLauncher-iOS/source.json</code></p>
+  </div>
+
+  <div class="card">
+    <h2>Mỗi lần chơi</h2>
+    <ol>
+      <li>Bật Wi-Fi, mở LocalDevVPN › Connect.</li>
+      <li>Mở CocoLauncher › Play. App tự mở StikDebug để bật JIT rồi quay lại.</li>
+      <li>Multiplayer › Coco › gõ <code>/login</code>.</li>
+    </ol>
+    <p class="hint">Cứ 7 ngày: SideStore › My Apps › Refresh All. <a href="huong-dan.html">Hướng dẫn và lỗi thường gặp</a></p>
+  </div>
+
+  <footer>
+    <p>CocoLauncher là bản sửa của <a href="https://github.com/AngelAuraMC/Amethyst-iOS">Angel Aura Amethyst</a> (dựa trên PojavLauncher), mã nguồn mở theo giấy phép GPLv3: <a href="https://github.com/Coconubs/CocoLauncher-iOS">github.com/Coconubs/CocoLauncher-iOS</a>.</p>
+    <p>Coco Cobblemon không liên quan tới Mojang hay Microsoft. Minecraft là thương hiệu của Mojang AB.</p>
+  </footer>
+</main>
+<script>
+fetch("source.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (src) {
+  var app = (src.apps || [])[0];
+  if (!app || !app.versions || !app.versions.length) {
+    document.getElementById("ver").textContent = "Chưa có bản phát hành.";
+    return;
+  }
+  var v = app.versions[0];
+  document.getElementById("ver").textContent = "Bản " + v.version + " · " + (v.size / 1048576).toFixed(0) + " MB · iOS " + (v.minOSVersion || "14.0") + " trở lên";
+  document.getElementById("ipa").href = v.downloadURL;
+}).catch(function () {
+  document.getElementById("ver").textContent = "";
+});
+</script>
+</body>
+</html>

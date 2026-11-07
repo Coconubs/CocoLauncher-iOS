@@ -1,0 +1,57 @@
+name: Pages and SideStore source
+
+# Publishes site/ and a generated source.json (SideStore/AltStore source)
+# to GitHub Pages: https://coconubs.github.io/CocoLauncher-iOS/
+# Runs after a release build (started by build.yml), when site/ changes,
+# or by hand.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'site/**'
+      - '.github/scripts/build_source.py'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build the site and source.json
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -R site/. _site/
+          python3 .github/scripts/build_source.py "$GITHUB_REPOSITORY" _site
+          python3 -m json.tool _site/source.json > /dev/null
+          cat _site/source.json
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

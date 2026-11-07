@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn CocoLauncher</title>
+<link rel="icon" href="icon-256.png">
+<style>
+:root {
+  --bg: #f4f8fc; --card: #ffffff; --text: #13202f; --muted: #5a6b7d;
+  --line: #d9e3ee; --accent: #2f7fd1;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0f1722; --card: #182333; --text: #e8eef5; --muted: #9fb0c3; --line: #2a3a50; --accent: #5aa6ee; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 1.35rem; margin: 0 0 4px; }
+h2 { font-size: 1.05rem; margin: 0 0 8px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+ol, ul { margin: 4px 0 0; padding-left: 22px; }
+li { margin: 5px 0; }
+dt { font-weight: 600; margin-top: 10px; }
+dd { margin: 2px 0 0; color: var(--muted); }
+p { margin: 6px 0; }
+.muted { color: var(--muted); font-size: .92rem; }
+code { font-size: .9em; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chơi Coco Cobblemon trên iPhone</h1>
+  <p class="muted">CocoLauncher tự tạo profile Coco và tự tải gói Coco Lite. Bạn chỉ cần tài khoản và bấm Play.</p>
+
+  <div class="card">
+    <h2>Lần đầu</h2>
+    <ol>
+      <li>Mở <b>StikDebug</b> một lần (Wi-Fi + LocalDevVPN đang bật). Trong Settings của StikDebug, bật <b>Picture in Picture</b> và <b>Always Run Scripts</b>.</li>
+      <li>CocoLauncher › nút tài khoản (góc trên) › <b>+</b> › <b>Microsoft account</b> › đăng nhập tài khoản <b>đã mua Minecraft: Java Edition</b>.</li>
+      <li>Bấm <b>Play</b>. App tải Minecraft 1.21.1 + Fabric (khoảng 1 GB) và gói Coco Lite (khoảng 460 MB). Nên dùng Wi-Fi. Lần đầu có thể màn hình đen 3–5 phút.</li>
+      <li>Vào tới menu Minecraft thì thoát game. Thêm tài khoản <b>Local</b> bằng <b>tên nhân vật trên Coco</b> và chọn tài khoản đó.</li>
+      <li>Bấm Play › <b>Multiplayer</b> › chọn server Coco › <code>/register</code> (người mới) hoặc <code>/login</code>.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Mỗi lần chơi</h2>
+    <ol>
+      <li>Bật Wi-Fi, mở <b>LocalDevVPN</b> › Connect.</li>
+      <li>Mở CocoLauncher › <b>Play</b>. App tự mở StikDebug để bật JIT rồi quay lại.</li>
+      <li>Khi JIT đã bật thì chuyển sang 4G cũng được.</li>
+    </ol>
+    <p class="muted">Khi gói Coco có bản mới, bấm Play là app tự tải phần thay đổi.</p>
+  </div>
+
+  <div class="card">
+    <h2>Mỗi 7 ngày</h2>
+    <p>Wi-Fi + LocalDevVPN › <b>SideStore</b> › My Apps › <b>Refresh All</b>. Dữ liệu game vẫn giữ nguyên. Quá 7 ngày app sẽ không mở được cho tới khi Refresh.</p>
+  </div>
+
+  <div class="card">
+    <h2>Lỗi thường gặp</h2>
+    <dl>
+      <dt>Kẹt ở “Waiting for JIT”</dt>
+      <dd>Kiểm LocalDevVPN đang Connected và đang ở Wi-Fi. Bấm Huỷ, tắt hẳn StikDebug và CocoLauncher rồi thử lại.</dd>
+      <dt>“Không thể tải Minecraft khi đang dùng tài khoản Local”</dt>
+      <dd>Game chưa tải xong. Chọn lại tài khoản Microsoft đã mua Minecraft Java, bấm Play cho tải hết, rồi mới đổi về Local.</dd>
+      <dt>Tài khoản hiện “Demo”</dt>
+      <dd>Tài khoản Microsoft này chưa mua Minecraft: Java Edition. Bản Demo không vào được server.</dd>
+      <dt>Văng khi đang nạp game, hoặc báo thiếu bộ nhớ</dt>
+      <dd>Settings › Java › Memory: hạ dần 3072 → 2816 → 2560 MB. Xem file <code>latestlog.txt</code> (app Tệp › CocoLauncher) có dòng <code>increased-memory-limit: YES</code> không; nếu NO thì cần cài lại CocoLauncher bằng iloader › Import IPA trên máy tính.</dd>
+      <dt>App không mở được</dt>
+      <dd>Quá 7 ngày chưa Refresh: SideStore › Refresh All. Thông báo “unsupported installation method”: app không được cài bằng SideStore hoặc iloader, hãy cài lại.</dd>
+      <dt>Muốn tắt một mod (ví dụ khi đổi renderer sang ANGLE thì phải tắt Sodium)</dt>
+      <dd>App Tệp › CocoLauncher › instances › default › CocoLite › mods: đổi tên file thành <code>tên-mod.jar.disabled</code>.</dd>
+    </dl>
+  </div>
+
+  <p class="muted">Hỗ trợ: Discord Coco <a href="https://discord.gg/hyspace">discord.gg/hyspace</a>. Mã nguồn CocoLauncher (GPLv3, dựa trên Angel Aura Amethyst và PojavLauncher): <a href="https://github.com/Coconubs/CocoLauncher-iOS">github.com/Coconubs/CocoLauncher-iOS</a>.</p>
+</main>
+</body>
+</html>

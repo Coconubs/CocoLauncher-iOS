@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cài CocoLauncher</title>
+<link rel="icon" href="icon-256.png">
+<style>
+:root { --bg: #f4f8fc; --text: #13202f; --muted: #5a6b7d; --accent: #2f7fd1; --accent-text: #fff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0f1722; --text: #e8eef5; --muted: #9fb0c3; --accent: #5aa6ee; --accent-text: #0b1420; } }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 520px; margin: 0 auto; padding: 32px 16px; text-align: center; }
+img { width: 88px; height: 88px; border-radius: 20px; }
+a.btn { display: block; margin: 18px 0; padding: 13px; border-radius: 12px; background: var(--accent); color: var(--accent-text); font-weight: 600; text-decoration: none; }
+p { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <img src="icon.png" alt="">
+  <h1>Cài CocoLauncher bằng SideStore</h1>
+  <p id="info">Đang tìm bản mới nhất…</p>
+  <a class="btn" id="go" href="./">Mở SideStore</a>
+  <p>Nên <a href="them-nguon.html">thêm nguồn Coco</a> để SideStore tự báo khi có bản mới.</p>
+</main>
+<script>
+fetch("source.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (src) {
+  var app = (src.apps || [])[0];
+  var v = app && app.versions && app.versions[0];
+  if (!v) { document.getElementById("info").textContent = "Chưa có bản phát hành."; return; }
+  var link = "sidestore://install?url=" + encodeURIComponent(v.downloadURL);
+  document.getElementById("go").href = link;
+  document.getElementById("info").textContent = "CocoLauncher " + v.version + " (" + (v.size / 1048576).toFixed(0) + " MB)";
+  setTimeout(function () { location.href = link; }, 300);
+}).catch(function () {
+  document.getElementById("info").textContent = "Không đọc được danh sách bản phát hành.";
+});
+</script>
+</body>
+</html>
