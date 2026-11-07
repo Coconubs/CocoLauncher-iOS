@@ -741,6 +741,15 @@ void CocoReloadRootViewController(void) {
             }];
         }
     }
+    // Sample name for store/ad screenshots: saved as a Local account like a real player
+    NSString *demoName = [defaults stringForKey:@"cocoDemoName"];
+    if ([CocoHomeViewController isValidPlayerName:demoName]) {
+        if (![self accountExists:demoName]) {
+            [self accountForName:demoName];
+        }
+        self.nameField.text = demoName;
+        [self refreshNameNote];
+    }
     NSString *preview = [defaults stringForKey:@"cocoPreview"];
     if (preview.length == 0) {
         return;
