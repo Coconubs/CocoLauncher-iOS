@@ -359,3 +359,8 @@
 "coco.memory.help.off" = "This copy is NOT signed with the Increased Memory Limit entitlement, so iOS keeps this app at a lower memory limit. The app cannot turn it on by itself: it depends on how the app was signed. Installing with iloader 2.4.1 or newer (Import IPA) adds it. Until then, keep the Java heap at or below the safe value.";
 "coco.jit.slow" = "JIT is still not enabled. Check that LocalDevVPN is connected (Wi-Fi on), then open StikDebug and enable JIT for CocoLauncher. You can also tap Cancel and press Play again.";
 "coco.jit.timeout" = "Stopped waiting for JIT after 10 minutes. Connect LocalDevVPN, open StikDebug, then press Play again.";
+"coco.autolocal.title" = "Minecraft is downloaded";
+"coco.autolocal.message" = "You can now play with a Local account. Enter your Coco character name (3-16 characters). If it is the same as your Microsoft name, the Microsoft account is turned into a Local account and signed out of this app.";
+"coco.autolocal.switch" = "Switch to Local";
+"coco.autolocal.keep" = "Keep Microsoft";
+"coco.autolocal.failed" = "Could not create the Local account. The game will start with your Microsoft account.";

@@ -311,3 +311,8 @@
 "coco.memory.help.off" = "Bản cài này CHƯA được ký kèm quyền Increased Memory Limit nên iOS giới hạn bộ nhớ thấp hơn. App không tự bật được quyền này, vì nó phụ thuộc cách ký app. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền. Trong lúc chưa có, giữ RAM Java không vượt mức an toàn.";
 "coco.jit.slow" = "Vẫn chưa bật được JIT. Kiểm tra LocalDevVPN đã kết nối (đang bật Wi-Fi), rồi mở StikDebug bật JIT cho CocoLauncher. Có thể bấm Huỷ rồi bấm Chơi lại.";
 "coco.jit.timeout" = "Đã dừng chờ JIT sau 10 phút. Bật LocalDevVPN, mở StikDebug rồi bấm Chơi lại.";
+"coco.autolocal.title" = "Đã tải xong Minecraft";
+"coco.autolocal.message" = "Từ giờ có thể chơi bằng tài khoản Local. Nhập tên nhân vật của bạn trên Coco (3-16 ký tự). Nếu trùng tên tài khoản Microsoft, tài khoản Microsoft sẽ chuyển thành Local và được đăng xuất khỏi app.";
+"coco.autolocal.switch" = "Chuyển sang Local";
+"coco.autolocal.keep" = "Giữ Microsoft";
+"coco.autolocal.failed" = "Không tạo được tài khoản Local. Game sẽ chạy bằng tài khoản Microsoft.";
