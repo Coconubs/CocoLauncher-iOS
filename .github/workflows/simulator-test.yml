@@ -36,6 +36,25 @@ jobs:
       - name: Build for the iOS Simulator
         run: gmake -j"$(sysctl -n hw.ncpu)" payload PLATFORM=7 BOOTJDK="$JAVA_HOME/bin"
 
+      - name: Re-sign for the Simulator (ad-hoc, no entitlements)
+        run: |
+          set -euo pipefail
+          APP=artifacts/Payload/AngelAuraAmethyst.app
+          # Simulator apps run as macOS processes; macOS refuses to start a
+          # process whose signature carries iOS-only or private entitlements
+          # (memorystatus, container-required, ...). The device IPA is not
+          # affected by this step.
+          find "$APP" -type f | while read -r f; do
+            if file "$f" | grep -q 'Mach-O'; then
+              codesign -f -s - --timestamp=none "$f" > /dev/null 2>&1 || echo "codesign failed: $f"
+            fi
+          done
+          for fw in "$APP"/Frameworks/*.framework; do
+            [ -d "$fw" ] && codesign -f -s - --timestamp=none "$fw" > /dev/null 2>&1 || true
+          done
+          codesign -f -s - --timestamp=none "$APP"
+          codesign -dv --entitlements - "$APP" 2>&1 | head -n 20
+
       - name: Boot a simulator
         id: sim
         run: |
@@ -62,15 +81,19 @@ jobs:
         env:
           UDID: ${{ steps.sim.outputs.udid }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p out
           xcrun simctl install "$UDID" artifacts/Payload/AngelAuraAmethyst.app
-          xcrun simctl launch "$UDID" "$BUNDLE_ID" | tee out/launch.txt
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1 | tee out/launch.txt
           sleep 60
           xcrun simctl io "$UDID" screenshot out/screen-60s.png
           sleep 30
           xcrun simctl io "$UDID" screenshot out/screen-90s.png
           (xcrun simctl spawn "$UDID" launchctl list | grep -i cocolauncher || echo "app process not found") | tee out/process.txt
+          if grep -q "app process not found" out/process.txt; then
+            echo "::error::CocoLauncher is not running on the simulator"
+            exit 1
+          fi
 
       - name: Collect logs and Coco files
         if: always()
@@ -88,6 +111,8 @@ jobs:
           cp "$DOCS/instances/default/launcher_profiles.json" out/ 2>/dev/null
           cp "$DOCS/instances/default/versions/fabric-loader-0.18.4-1.21.1/fabric-loader-0.18.4-1.21.1.json" out/ 2>/dev/null
           cp "$DOCS/launcher_preferences_v2.plist" out/ 2>/dev/null && plutil -convert xml1 out/launcher_preferences_v2.plist
+          xcrun simctl spawn "$UDID" log show --last 15m --style compact --predicate 'process == "AngelAuraAmethyst" OR eventMessage CONTAINS[c] "cocolauncher" OR eventMessage CONTAINS[c] "AngelAuraAmethyst"' > out/system-log.txt 2>&1
+          echo "--- system log (tail)"; tail -n 60 out/system-log.txt
           ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i -E "amethyst|coco" > out/crash-reports.txt
           for f in $(ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i -E "amethyst|coco"); do cp "$HOME/Library/Logs/DiagnosticReports/$f" out/; done
           echo "--- latestlog.txt"; cat out/latestlog.txt
