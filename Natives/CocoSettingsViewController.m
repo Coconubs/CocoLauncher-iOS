@@ -29,6 +29,7 @@
 @property(nonatomic) NSArray<CocoOptionButton *> *rendererButtons;
 @property(nonatomic) NSArray<CocoOptionButton *> *fpsButtons;
 @property(nonatomic) UIButton *verifyButton;
+@property(nonatomic) UIStackView *footer;
 @end
 
 static NSArray<NSString *> *CocoPresetKeys(void) {
@@ -176,7 +177,6 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     NSString *version = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     UILabel *about = CocoLabel([NSString stringWithFormat:localize(@"coco.settings.about", nil), version], CocoFontRegular, 15, COCO_DIM);
     about.numberOfLines = 2;
-    [card addSubview:about];
 
     self.verifyButton = [UIButton buttonWithType:UIButtonTypeCustom];
     self.verifyButton.translatesAutoresizingMaskIntoConstraints = NO;
@@ -188,7 +188,18 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     self.verifyButton.titleLabel.minimumScaleFactor = 0.7;
     [self.verifyButton setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
     [self.verifyButton addTarget:self action:@selector(verifyFiles) forControlEvents:UIControlEventTouchUpInside];
-    [card addSubview:self.verifyButton];
+
+    // Side by side when wide, stacked on a portrait phone (see viewDidLayoutSubviews)
+    UIStackView *footer = [UIStackView new];
+    footer.translatesAutoresizingMaskIntoConstraints = NO;
+    footer.axis = UILayoutConstraintAxisHorizontal;
+    footer.alignment = UIStackViewAlignmentCenter;
+    footer.distribution = UIStackViewDistributionEqualSpacing;
+    footer.spacing = 12;
+    [footer addArrangedSubview:about];
+    [footer addArrangedSubview:self.verifyButton];
+    [card addSubview:footer];
+    self.footer = footer;
 
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     NSLayoutConstraint *preferredWidth = [card.widthAnchor constraintEqualToConstant:900];
@@ -234,12 +245,10 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
         [bottomLine.leadingAnchor constraintEqualToAnchor:card.leadingAnchor],
         [bottomLine.trailingAnchor constraintEqualToAnchor:card.trailingAnchor],
         [bottomLine.heightAnchor constraintEqualToConstant:1],
-        [bottomLine.bottomAnchor constraintEqualToAnchor:about.topAnchor constant:-16],
-        [about.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:28],
-        [about.bottomAnchor constraintEqualToAnchor:card.bottomAnchor constant:-18],
-        [about.trailingAnchor constraintLessThanOrEqualToAnchor:self.verifyButton.leadingAnchor constant:-12],
-        [self.verifyButton.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-28],
-        [self.verifyButton.centerYAnchor constraintEqualToAnchor:about.centerYAnchor],
+        [bottomLine.bottomAnchor constraintEqualToAnchor:footer.topAnchor constant:-14],
+        [footer.leadingAnchor constraintEqualToAnchor:card.leadingAnchor constant:28],
+        [footer.trailingAnchor constraintEqualToAnchor:card.trailingAnchor constant:-28],
+        [footer.bottomAnchor constraintEqualToAnchor:card.bottomAnchor constant:-16],
     ]];
 
     [self refreshValues];
@@ -255,6 +264,9 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
         self.columns.axis = narrow ? UILayoutConstraintAxisVertical : UILayoutConstraintAxisHorizontal;
         self.columns.alignment = narrow ? UIStackViewAlignmentFill : UIStackViewAlignmentTop;
         self.columns.spacing = narrow ? 26 : 32;
+        self.footer.axis = narrow ? UILayoutConstraintAxisVertical : UILayoutConstraintAxisHorizontal;
+        self.footer.alignment = narrow ? UIStackViewAlignmentLeading : UIStackViewAlignmentCenter;
+        self.footer.spacing = narrow ? 4 : 12;
     }
 }
 
