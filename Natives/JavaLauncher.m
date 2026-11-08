@@ -251,6 +251,8 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
 
     // Setup options.txt
     [MinecraftOptionUtils setupOptionsAtGameDir:gameDir];
+    // CocoLauncher: ModernFix dynamic resources (Settings > Memory), to fit the pack in the iOS memory limit
+    CocoWriteModernFixConfig(gameDir);
 
     // CocoLauncher: make the game directory the working directory of the process as well. Only
     // -Duser.dir was set before, but java.nio resolves relative paths against the real working

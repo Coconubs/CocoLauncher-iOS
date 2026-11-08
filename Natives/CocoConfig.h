@@ -13,7 +13,8 @@
 // Coco Lite pack (the same files as the Android client). Every file is
 // listed with its path, size and SHA-1; only files hosted on the
 // Coconubs/cocolauncher-pack releases are accepted.
-#define COCO_PACK_MANIFEST_URL  @"https://github.com/Coconubs/cocolauncher-pack/releases/download/android/manifest.json"
+// 2026-11-08: Coco Lite iOS (tools/ios-lite.json in CocoLauncher), lighter than the Android pack
+#define COCO_PACK_MANIFEST_URL  @"https://github.com/Coconubs/cocolauncher-pack/releases/download/ios-pack/manifest.json"
 #define COCO_PACK_URL_PREFIX    @"https://github.com/Coconubs/cocolauncher-pack/releases/download/"
 #define COCO_PACK_MARKER        @".coco-pack.json"
 

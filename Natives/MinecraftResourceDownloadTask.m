@@ -400,6 +400,7 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     [fileManager createDirectoryAtPath:baseDir withIntermediateDirectories:YES attributes:nil error:nil];
 
     NSMutableSet *packMods = [NSMutableSet new];
+    NSMutableSet *packResourcePacks = [NSMutableSet new];
     NSMutableArray *pending = [NSMutableArray new];
     NSUInteger checked = 0;
     for (NSDictionary *file in manifest[@"files"]) {
@@ -416,6 +417,9 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         }
         sha = sha.lowercaseString;
         checked++;
+        if ([relPath hasPrefix:@"resourcepacks/"]) {
+            [packResourcePacks addObject:relPath.lastPathComponent];
+        }
         if ([relPath hasPrefix:@"mods/"]) {
             [packMods addObject:relPath.lastPathComponent];
             // "<mod>.jar.disabled" lets a player switch off a mod (e.g. Sodium with ANGLE)
@@ -449,6 +453,24 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             if ([name.pathExtension.lowercaseString isEqualToString:@"jar"] && ![packMods containsObject:name]) {
                 NSLog(@"[CocoPack] Removing a mod that is no longer in the pack: %@", name);
                 [fileManager removeItemAtPath:[modsDir stringByAppendingPathComponent:name] error:nil];
+            }
+        }
+    }
+
+    // Resource packs dropped from the pack (Coco Lite iOS) still sit in resourcepacks/ and stay enabled
+    // in options.txt; move them out (not deleted) so the game does not load them.
+    if (packResourcePacks.count > 0) {
+        NSString *rpDir = [baseDir stringByAppendingPathComponent:@"resourcepacks"];
+        NSString *movedDir = [baseDir stringByAppendingPathComponent:@"resourcepacks-coco-removed"];
+        for (NSString *name in [fileManager contentsOfDirectoryAtPath:rpDir error:nil]) {
+            if (![name.pathExtension.lowercaseString isEqualToString:@"zip"] || [packResourcePacks containsObject:name]) {
+                continue;
+            }
+            [fileManager createDirectoryAtPath:movedDir withIntermediateDirectories:YES attributes:nil error:nil];
+            NSString *target = [movedDir stringByAppendingPathComponent:name];
+            [fileManager removeItemAtPath:target error:nil];
+            if ([fileManager moveItemAtPath:[rpDir stringByAppendingPathComponent:name] toPath:target error:nil]) {
+                NSLog(@"[CocoPack] Moved a resource pack that is no longer in the pack: %@", name);
             }
         }
     }

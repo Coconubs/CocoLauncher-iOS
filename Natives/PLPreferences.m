@@ -84,6 +84,8 @@
             @"java_args": @"",
             // CocoLauncher: let the player pick a heap above the safe maximum (no increased memory limit)
             @"coco_allow_over_safe": @NO,
+            // CocoLauncher: ModernFix dynamic resources (load block/item models on demand, much less heap)
+            @"coco_mf_dynamic_resources": @YES,
             @"env_variables": @"",
             @"auto_ram": @NO,
             @"allocated_memory": [PLPreferences cocoDefaultAllocatedMemory]

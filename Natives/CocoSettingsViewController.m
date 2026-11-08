@@ -19,6 +19,7 @@
 @property(nonatomic) UILabel *ramValue;
 @property(nonatomic) UILabel *ramNote;
 @property(nonatomic) CocoRowButton *overSafeButton;
+@property(nonatomic) CocoRowButton *mfDynamicButton;
 @property(nonatomic) UILabel *ramEntitlement;
 @property(nonatomic) int ramStep;
 
@@ -303,6 +304,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
         self.overSafeButton = [self rowButton:@"" action:@selector(overSafeTapped)];
         [column addArrangedSubview:self.overSafeButton];
     }
+    self.mfDynamicButton = [self rowButton:@"" action:@selector(mfDynamicTapped)];
+    [column addArrangedSubview:self.mfDynamicButton];
 
     UIView *gap1 = [UIView new];
     [gap1.heightAnchor constraintEqualToConstant:12].active = YES;
@@ -404,6 +407,9 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
             localize(getPrefBool(@"java.coco_allow_over_safe") ? @"coco.mg.val.on" : @"coco.mg.val.off", nil)]
             forState:UIControlStateNormal];
     }
+    [self.mfDynamicButton setTitle:[NSString stringWithFormat:localize(@"coco.memory.mf_dynamic", nil),
+        localize(getPrefBool(@"java.coco_mf_dynamic_resources") ? @"coco.mg.val.on" : @"coco.mg.val.off", nil)]
+        forState:UIControlStateNormal];
     [self updateRamTexts:ram];
 
     int resolution = MIN((int)getPrefInt(@"video.resolution"), 100);
@@ -548,6 +554,11 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     }];
     [sheet addSecondary:localize(@"coco.mg.cancel", nil) action:nil];
     [self presentViewController:sheet animated:YES completion:nil];
+}
+
+- (void)mfDynamicTapped {
+    setPrefBool(@"java.coco_mf_dynamic_resources", !getPrefBool(@"java.coco_mf_dynamic_resources"));
+    [self refreshValues];
 }
 
 - (void)mgResetAllTapped {

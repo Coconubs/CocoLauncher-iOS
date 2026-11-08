@@ -435,3 +435,4 @@
 "coco.memory.over_safe_title" = "Cho vượt mức an toàn?";
 "coco.memory.over_safe_warning" = "Bản cài này chưa có quyền tăng bộ nhớ nên mức an toàn là %d MB. Vượt mức này, iOS rất dễ tắt game khi đang tải hoặc vào thế giới. Bạn tự chịu rủi ro. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền tăng bộ nhớ và không cần bật mục này.";
 "coco.memory.over_safe_enable" = "Bật (tự chịu rủi ro)";
+"coco.memory.mf_dynamic" = "Nạp model khi cần (tiết kiệm RAM): %@";

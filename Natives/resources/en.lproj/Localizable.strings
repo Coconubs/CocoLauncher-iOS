@@ -483,3 +483,4 @@
 "coco.memory.over_safe_title" = "Allow above the safe maximum?";
 "coco.memory.over_safe_warning" = "This install has no increased memory limit, so the safe maximum is %d MB. Above it, iOS is likely to close the game while loading or joining a world. At your own risk. Installing with iloader 2.4.1 or newer (Import IPA) gives the increased memory limit and makes this unnecessary.";
 "coco.memory.over_safe_enable" = "Allow (at my own risk)";
+"coco.memory.mf_dynamic" = "Load models on demand (saves RAM): %@";

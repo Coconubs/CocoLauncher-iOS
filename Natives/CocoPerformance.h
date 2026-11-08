@@ -87,3 +87,6 @@ void CocoResetMGOptions(void);
 
 // Writes MG_DIR_PATH/config.json with every option above.
 void CocoWriteMobileGluesConfig(NSString *mgDir);
+// Sets mixin.perf.dynamic_resources in <gameDir>/config/modernfix-mixins.properties from the
+// java.coco_mf_dynamic_resources preference (the pack only seeds that file once).
+void CocoWriteModernFixConfig(NSString *gameDir);

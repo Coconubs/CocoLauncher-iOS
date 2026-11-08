@@ -267,6 +267,36 @@ void CocoResetMGOptions(void) {
     }
 }
 
+void CocoWriteModernFixConfig(NSString *gameDir) {
+    if (gameDir.length == 0) {
+        return;
+    }
+    NSString *key = @"mixin.perf.dynamic_resources";
+    BOOL enable = getPrefBool(@"java.coco_mf_dynamic_resources");
+    NSString *configDir = [gameDir stringByAppendingPathComponent:@"config"];
+    NSString *path = [configDir stringByAppendingPathComponent:@"modernfix-mixins.properties"];
+    NSString *text = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil] ?: @"";
+    NSMutableArray<NSString *> *lines = [NSMutableArray new];
+    for (NSString *line in [text componentsSeparatedByString:@"\n"]) {
+        NSString *trimmed = [line stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        if ([trimmed hasPrefix:[key stringByAppendingString:@"="]]) {
+            continue;
+        }
+        [lines addObject:line];
+    }
+    while (lines.count > 0 && [lines.lastObject stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet].length == 0) {
+        [lines removeLastObject];
+    }
+    [lines addObject:[NSString stringWithFormat:@"%@=%@", key, enable ? @"true" : @"false"]];
+    [NSFileManager.defaultManager createDirectoryAtPath:configDir withIntermediateDirectories:YES attributes:nil error:nil];
+    NSError *error = nil;
+    if (![[[lines componentsJoinedByString:@"\n"] stringByAppendingString:@"\n"] writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
+        NSLog(@"[CocoLauncher] Could not write %@: %@", path, error.localizedDescription);
+        return;
+    }
+    NSLog(@"[CocoLauncher] ModernFix %@=%@", key, enable ? @"true" : @"false");
+}
+
 void CocoWriteMobileGluesConfig(NSString *mgDir) {
     if (mgDir.length == 0) {
         return;
