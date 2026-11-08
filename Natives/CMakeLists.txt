@@ -186,7 +186,7 @@ target_link_libraries(AngelAuraAmethyst
   PUBLIC AFNetworking
   lzma
   # cocoram (Rust, built by the Makefile before cmake): Increased Memory Limit for our App ID
-  "${CMAKE_CURRENT_LIST_DIR}/cocoram/target/aarch64-apple-ios/release/libcocoram.a"
+  "${CMAKE_CURRENT_LIST_DIR}/cocoram/target/libcocoram.a"
   resolv
   "-framework Security"
   "-framework SystemConfiguration"

@@ -35,6 +35,9 @@ jobs:
           distribution: zulu
           java-version: '8'
 
+      - name: Rust for the iOS Simulator (cocoram)
+        run: rustup target add aarch64-apple-ios-sim
+
       - name: Build for the iOS Simulator
         run: gmake -j"$(sysctl -n hw.ncpu)" payload PLATFORM=7 BOOTJDK="$JAVA_HOME/bin"
 

@@ -79,6 +79,13 @@ $(error This platform is not currently supported for building Angel Aura Amethys
 endif
 
 # Define PLATFORM_NAME from PLATFORM
+# CocoLauncher: Rust target of Natives/cocoram (device or simulator)
+ifeq ($(PLATFORM),7)
+COCORAM_TARGET := aarch64-apple-ios-sim
+else
+COCORAM_TARGET := aarch64-apple-ios
+endif
+
 ifeq ($(PLATFORM),2)
 PLATFORM_NAME := ios
 $(warning Set PLATFORM to 2, which is equal to iOS.)
@@ -267,7 +274,8 @@ check:
 native: dep_mg
 	echo '[Amethyst v$(VERSION)] native - start'
 	# CocoLauncher: cocoram (Rust static library, isideload) for the in-app Increased Memory Limit
-	cd $(SOURCEDIR)/Natives/cocoram && IPHONEOS_DEPLOYMENT_TARGET=14.0 cargo build --release --target aarch64-apple-ios
+	cd $(SOURCEDIR)/Natives/cocoram && IPHONEOS_DEPLOYMENT_TARGET=14.0 cargo build --release --target $(COCORAM_TARGET)
+	cp $(SOURCEDIR)/Natives/cocoram/target/$(COCORAM_TARGET)/release/libcocoram.a $(SOURCEDIR)/Natives/cocoram/target/libcocoram.a
 	mkdir -p $(WORKINGDIR)
 	cd $(WORKINGDIR) && cmake \
 		-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
