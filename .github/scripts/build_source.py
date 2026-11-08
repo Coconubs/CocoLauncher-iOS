@@ -48,10 +48,30 @@ def api(path):
         return json.load(r)
 
 
-def download(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "cocolauncher-pages", "Accept": "application/octet-stream"})
+def download_asset(asset):
+    # Through the API asset endpoint, not browser_download_url: github.com/.../releases/download
+    # can be down while the API still works (2026-11-08). The token is not forwarded on the redirect.
+    req = urllib.request.Request(asset["url"], headers={"User-Agent": "cocolauncher-pages", "Accept": "application/octet-stream"})
+    if TOKEN:
+        req.add_unredirected_header("Authorization", f"Bearer {TOKEN}")
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read()
+
+
+# Fixed download link that tries GitHub first and falls back to a Cloudflare R2 copy. It serves the copy
+# kept in the "ios" release of Coconubs/cocolauncher-pack, so it is used only while that copy is the
+# same file (same SHA-256) as the newest release here; otherwise the GitHub link stays.
+MIRROR_IPA_URL = "https://tai.coconubs.workers.dev/ios/CocoLauncher-iOS.ipa"
+
+
+def mirror_copy_sha256():
+    try:
+        rel = api("repos/Coconubs/cocolauncher-pack/releases/tags/ios")
+    except Exception as e:  # no copy yet / API error -> keep the GitHub link
+        print(f"mirror copy check skipped: {e}")
+        return ""
+    asset = next((a for a in rel.get("assets", []) if a["name"] == "CocoLauncher-iOS.ipa"), None)
+    return (asset.get("digest") or "").removeprefix("sha256:") if asset else ""
 
 
 versions = []
@@ -65,7 +85,7 @@ for rel in api(f"repos/{REPO}/releases?per_page=50"):
     if ipa is None or info_asset is None:
         print(f"skip {rel['tag_name']}: no IPA or app-info.json")
         continue
-    info = json.loads(download(info_asset["browser_download_url"]))
+    info = json.loads(download_asset(info_asset))
     digest = (ipa.get("digest") or "").removeprefix("sha256:")
     if digest and digest != info["sha256"]:
         print(f"skip {rel['tag_name']}: sha256 of the IPA asset ({digest}) != app-info.json ({info['sha256']})")
@@ -86,6 +106,14 @@ for rel in api(f"repos/{REPO}/releases?per_page=50"):
     if latest_info is None:
         latest_info = info
     print(f"add {rel['tag_name']}: {ipa['browser_download_url']} ({ipa['size']} bytes)")
+
+if versions:
+    mirror_sha = mirror_copy_sha256()
+    if mirror_sha and mirror_sha == versions[0]["sha256"]:
+        versions[0]["downloadURL"] = MIRROR_IPA_URL
+        print(f"newest version {versions[0]['version']}: download through {MIRROR_IPA_URL}")
+    else:
+        print(f"newest version {versions[0]['version']}: mirror copy differs ({mirror_sha or 'none'}), keeping the GitHub link")
 
 apps = []
 if versions:
