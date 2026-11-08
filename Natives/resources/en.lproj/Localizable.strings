@@ -334,11 +334,11 @@
 "controller_configurator.section.footer.controller_style" = "Show different controller button names in this configurator.";
 
 /* CocoLauncher */
-"coco.account.hint" = "Create a Local account with your Coco character name to play. If the Minecraft files are not on this device yet, sign in once with a Microsoft account that OWNS Minecraft: Java Edition so the game can be downloaded; you can remove that account afterwards.";
+"coco.account.hint" = "A Local account uses your character name and is created and saved on this device right away, no Microsoft needed; use it for singleplayer and the Coco server. Only the Minecraft files (Mojang's) need a Microsoft account that OWNS Minecraft: Java Edition, once on this device; you can remove that account afterwards.";
 "coco.account.error.local_download" = "Minecraft can't be legally installed when logged in with a local account. Please switch to an online account to continue. (Coco: the first download needs a Microsoft account that owns Minecraft: Java Edition.)";
 "coco.pack.error.manifest" = "Could not download the Coco Cobblemon file list. Check your internet connection (Wi-Fi is recommended for the first download, about 460 MB) and try again.";
-"coco.account.option.local" = "Local account (character name)";
-"coco.account.option.microsoft" = "Microsoft (only to download the game the first time)";
+"coco.account.option.local" = "PLAY WITH A LOCAL ACCOUNT";
+"coco.account.option.microsoft" = "SIGN IN WITH MICROSOFT";
 "coco.account.error.name_chars" = "Use 3-16 characters: letters A-Z, digits and underscore (_) only.";
 "coco.account.error.exists" = "An account with this name already exists.";
 "preference.title.quality_preset" = "Performance preset";
@@ -388,10 +388,10 @@
 "coco.home.error.profile" = "The Coco Cobblemon profile is missing. Please reopen the app.";
 "coco.home.error.account" = "Could not create an account with this name. Try again or use another name.";
 "coco.home.error.versions" = "Could not get the Minecraft version list. Check your connection and press PLAY again.";
-"coco.home.first.title" = "First time: download Minecraft";
-"coco.home.first.message" = "The Minecraft files are not on this device yet. Sign in once with a Microsoft account that OWNS Minecraft: Java Edition to download the game. After that you play as \"%@\" (Local account) without signing in again.";
-"coco.home.first.message_noname" = "The Minecraft files are not on this device yet. Sign in once with a Microsoft account that OWNS Minecraft: Java Edition to download the game. After that you play with your in-game name (Local account) without signing in again.";
-"coco.home.first.login" = "Sign in with Microsoft";
+"coco.home.first.title" = "Minecraft files needed to play";
+"coco.home.first.message" = "Local account \"%@\" was created and saved on this device. The Minecraft files are not here yet: Mojang only lets them be downloaded with a Microsoft account that OWNS Minecraft: Java Edition, once. After that you play as \"%@\" (Local) without signing in again.";
+"coco.home.first.message_noname" = "The Minecraft files are not on this device yet: Mojang only lets them be downloaded with a Microsoft account that OWNS Minecraft: Java Edition, once. After that you play with a Local account without signing in again.";
+"coco.home.first.login" = "SIGN IN WITH MICROSOFT (once, to download the game)";
 "coco.home.first.buy" = "No Minecraft: Java Edition yet? Buy it on minecraft.net";
 "coco.home.first.later" = "Later";
 "coco.home.demo.title" = "This account doesn't own Minecraft";

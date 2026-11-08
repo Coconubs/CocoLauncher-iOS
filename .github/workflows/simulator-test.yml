@@ -88,6 +88,9 @@ jobs:
           set -uo pipefail
           mkdir -p out
           xcrun simctl install "$UDID" artifacts/Payload/AngelAuraAmethyst.app
+          # Clean device, no Microsoft account: the home screen creates the Local account
+          # "CocoTester" from this name, through the same path as a typed name.
+          xcrun simctl spawn "$UDID" defaults write "$BUNDLE_ID" cocoDemoName CocoTester
           xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1 | tee out/launch.txt
           sleep 60
           xcrun simctl io "$UDID" screenshot out/screen-60s.png
@@ -101,6 +104,44 @@ jobs:
           fi
           echo "$RESULT" | tee out/result.txt
           echo "### Simulator smoke test: $RESULT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Local account (first run, no Microsoft) and reload after restart
+        continue-on-error: true
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -uo pipefail
+          mkdir -p out
+          DOCS="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)/Documents"
+          EXPECTED="$(python3 -c 'import hashlib,uuid; h=bytearray(hashlib.md5(b"OfflinePlayer:CocoTester").digest()); h[6]=(h[6]&0x0f)|0x30; h[8]=(h[8]&0x3f)|0x80; print(uuid.UUID(bytes=bytes(h)))')"
+          check() {
+            F="$DOCS/accounts/CocoTester.json"
+            if [ ! -f "$F" ]; then echo "FAIL ($1): $F missing"; ls -la "$DOCS/accounts" 2>&1; return 1; fi
+            python3 - "$F" "$EXPECTED" "$1" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          ok = data.get("username") == "CocoTester" and data.get("profileId") == sys.argv[2] \
+              and "xboxGamertag" not in data and not data.get("accessToken")
+          print(("PASS" if ok else "FAIL") + " (%s): username=%s profileId=%s expected=%s msa_fields=%s" % (
+              sys.argv[3], data.get("username"), data.get("profileId"), sys.argv[2],
+              [k for k in ("xboxGamertag", "accessToken", "msaRefreshToken") if k in data]))
+          sys.exit(0 if ok else 1)
+          PY
+          }
+          R1="$(check 'first run')"; echo "$R1" | tee out/local-account.txt
+          # Restart without the sample name: the saved account must still be there
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          xcrun simctl spawn "$UDID" defaults delete "$BUNDLE_ID" cocoDemoName || true
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" > /dev/null 2>&1
+          sleep 30
+          xcrun simctl io "$UDID" screenshot out/screen-after-restart.png
+          R2="$(check 'after restart')"; echo "$R2" | tee -a out/local-account.txt
+          ls "$DOCS/accounts" | tee -a out/local-account.txt
+          {
+            echo "### Local account"
+            echo "- $R1"
+            echo "- $R2"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Collect logs and Coco files
         if: always()

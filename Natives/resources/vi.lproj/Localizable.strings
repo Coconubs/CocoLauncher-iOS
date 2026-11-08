@@ -286,11 +286,11 @@
 "controller_configurator.section.footer.controller_style" = "Hiển thị các tên nút điều khiển khác nhau trong bộ cấu hình này.";
 
 /* CocoLauncher */
-"coco.account.hint" = "Tạo tài khoản Local bằng tên nhân vật của bạn trên Coco để chơi. Nếu máy chưa có file Minecraft, cần đăng nhập 1 lần bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game; tải xong có thể xoá tài khoản Microsoft đó.";
+"coco.account.hint" = "Tài khoản Local dùng tên nhân vật của bạn, tạo và lưu ngay trên máy, không cần Microsoft; dùng để chơi đơn và vào server Coco. Riêng file Minecraft (của Mojang) chỉ tải được bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition, 1 lần duy nhất trên máy này; tải xong có thể xoá tài khoản Microsoft đó.";
 "coco.account.error.local_download" = "Không thể tải Minecraft khi đang dùng tài khoản Local. Hãy chọn tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game lần đầu. Tải xong mới chuyển sang tài khoản Local.";
 "coco.pack.error.manifest" = "Không tải được danh sách gói Coco Cobblemon. Kiểm tra kết nối mạng rồi thử lại (lần đầu nên dùng Wi-Fi, khoảng 460 MB).";
-"coco.account.option.local" = "Tài khoản Local (tên nhân vật)";
-"coco.account.option.microsoft" = "Microsoft (chỉ để tải game lần đầu)";
+"coco.account.option.local" = "CHƠI BẰNG TÀI KHOẢN LOCAL";
+"coco.account.option.microsoft" = "ĐĂNG NHẬP MICROSOFT";
 "coco.account.error.name_chars" = "Tên dài 3-16 ký tự, chỉ gồm chữ cái không dấu, số và dấu gạch dưới (_).";
 "coco.account.error.exists" = "Đã có tài khoản mang tên này.";
 "preference.title.quality_preset" = "Cấu hình hiệu năng";
@@ -340,10 +340,10 @@
 "coco.home.error.profile" = "Không tìm thấy hồ sơ Coco Cobblemon. Hãy mở lại app.";
 "coco.home.error.account" = "Không tạo được tài khoản với tên này. Thử lại hoặc đổi tên khác.";
 "coco.home.error.versions" = "Không lấy được danh sách phiên bản Minecraft. Kiểm tra mạng rồi bấm CHƠI lại.";
-"coco.home.first.title" = "Lần đầu: tải Minecraft";
-"coco.home.first.message" = "Máy chưa có file Minecraft. Đăng nhập 1 lần bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game. Tải xong, bạn chơi bằng tên \"%@\" (tài khoản Local), không cần đăng nhập lại.";
-"coco.home.first.message_noname" = "Máy chưa có file Minecraft. Đăng nhập 1 lần bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game. Tải xong, bạn chơi bằng tên trong game (tài khoản Local), không cần đăng nhập lại.";
-"coco.home.first.login" = "Đăng nhập Microsoft";
+"coco.home.first.title" = "Cần file Minecraft để chơi";
+"coco.home.first.message" = "Tài khoản Local \"%@\" đã được tạo và lưu trên máy. Máy chưa có file Minecraft: Mojang chỉ cho tải bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition, 1 lần duy nhất. Tải xong, bạn chơi bằng \"%@\" (Local), không cần đăng nhập lại.";
+"coco.home.first.message_noname" = "Máy chưa có file Minecraft: Mojang chỉ cho tải bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition, 1 lần duy nhất. Tải xong, bạn chơi bằng tài khoản Local, không cần đăng nhập lại.";
+"coco.home.first.login" = "ĐĂNG NHẬP MICROSOFT (1 lần để tải game)";
 "coco.home.first.buy" = "Chưa có Minecraft: Java Edition? Mua tại minecraft.net";
 "coco.home.first.later" = "Để sau";
 "coco.home.demo.title" = "Tài khoản chưa mua Minecraft";

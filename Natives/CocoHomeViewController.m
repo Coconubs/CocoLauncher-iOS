@@ -1056,7 +1056,7 @@ void CocoReloadRootViewController(void) {
 
 - (void)presentFirstDownloadForName:(NSString *)name {
     NSString *message = name.length > 0
-        ? [NSString stringWithFormat:localize(@"coco.home.first.message", nil), name]
+        ? [NSString stringWithFormat:localize(@"coco.home.first.message", nil), name, name]
         : localize(@"coco.home.first.message_noname", nil);
     CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.home.first.title", nil) message:message];
     __weak CocoHomeViewController *weakSelf = self;
