@@ -61,7 +61,10 @@ def download_asset(asset):
 # Fixed download link that tries GitHub first and falls back to a Cloudflare R2 copy. It serves the copy
 # kept in the "ios" release of Coconubs/cocolauncher-pack, so it is used only while that copy is the
 # same file (same SHA-256) as the newest release here; otherwise the GitHub link stays.
-MIRROR_IPA_URL = "https://tai.coconubs.workers.dev/ios/CocoLauncher-iOS.ipa"
+# The file name must be the bundle ID: SideStore (sidestore://install?url=) takes the name without .ipa as the
+# bundle ID and refuses the install when it differs ("does not match the one specified by the source").
+MIRROR_IPA_NAME = "dev.coconubs.cocolauncher.ios.ipa"
+MIRROR_IPA_URL = "https://tai.coconubs.workers.dev/ios/" + MIRROR_IPA_NAME
 
 
 def mirror_copy_sha256():
@@ -70,7 +73,7 @@ def mirror_copy_sha256():
     except Exception as e:  # no copy yet / API error -> keep the GitHub link
         print(f"mirror copy check skipped: {e}")
         return ""
-    asset = next((a for a in rel.get("assets", []) if a["name"] == "CocoLauncher-iOS.ipa"), None)
+    asset = next((a for a in rel.get("assets", []) if a["name"] == MIRROR_IPA_NAME), None)
     return (asset.get("digest") or "").removeprefix("sha256:") if asset else ""
 
 
