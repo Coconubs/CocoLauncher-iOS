@@ -322,9 +322,12 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     // cache is smaller than the default 240 MB JIT mapping. Custom JVM flags come later and win.
     if (CocoLacksMemoryEntitlement()) {
         margv[++margc] = "-XX:+UseSerialGC";
-        margv[++margc] = "-XX:CICompilerCount=2";
-        margv[++margc] = "-XX:ReservedCodeCacheSize=160m";
-        NSLog(@"[CocoLauncher] Low-memory JVM: SerialGC, 2 compiler threads, 160 MB code cache");
+        // build 10: 1920 MB heap ran out while 2304 MB was killed by iOS, so squeeze the native side
+        // further: C1 only (C2's compile arenas are the biggest native spikes) and a 96 MB code cache.
+        margv[++margc] = "-XX:TieredStopAtLevel=1";
+        margv[++margc] = "-XX:CICompilerCount=1";
+        margv[++margc] = "-XX:ReservedCodeCacheSize=96m";
+        NSLog(@"[CocoLauncher] Low-memory JVM: SerialGC, C1 only, 96 MB code cache");
     }
 
     // Disable Forge 1.16.x early progress window
