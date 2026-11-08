@@ -356,7 +356,7 @@
 "coco.memory.selected" = "%d MB (%.2f GB) given to Java";
 "coco.memory.too_high" = "Above the safe value: iOS may close the game when memory runs out.";
 "coco.memory.help.on" = "This copy is signed with the Increased Memory Limit entitlement, so iOS lets it use more memory. Keep the Java heap at or below the safe value shown; the rest is needed by Minecraft's native code and graphics.";
-"coco.memory.help.off" = "This copy is NOT signed with the Increased Memory Limit entitlement, so iOS keeps this app at a lower memory limit. The app cannot turn it on by itself: it depends on how the app was signed. Installing with iloader 2.4.1 or newer (Import IPA) adds it. Until then, keep the Java heap at or below the safe value.";
+"coco.memory.help.off" = "This copy is NOT signed with the Increased Memory Limit entitlement, so iOS keeps this app at a lower memory limit. The app cannot turn it on by itself: it depends on how the app was signed. Installed with SideStore: use the GetMoreRam app (github.com/hugeBlack/GetMoreRam), sign in with the same Apple ID, App IDs > CocoLauncher > Add Increased Memory Limit, then reinstall CocoLauncher from SideStore. Or install with iloader 2.4.1 or newer (Import IPA). Until then, keep the Java heap at or below the safe value.";
 "coco.jit.slow" = "JIT is still not enabled. Check that LocalDevVPN is connected (Wi-Fi on), then open StikDebug and enable JIT for CocoLauncher. You can also tap Cancel and press Play again.";
 "coco.jit.timeout" = "Stopped waiting for JIT after 10 minutes. Connect LocalDevVPN, open StikDebug, then press Play again.";
 "coco.autolocal.title" = "Minecraft is downloaded";
@@ -429,7 +429,7 @@
 "coco.settings.ram_note_nolimit" = "Device %.1f GB RAM · recommended %d MB";
 "coco.memory.capped" = "This install has no increased memory permission, so Java can use at most %d MB (iOS closes the game above that).";
 "coco.memory.lowered.title" = "Java memory lowered";
-"coco.memory.lowered" = "This install is not signed with the Increased Memory Limit permission, so iOS only gives the app about %@. Java memory was lowered from %d MB to %d MB so the game is not closed while it runs. Installing with iloader 2.4.1 or later (Import IPA) adds the permission.";
+"coco.memory.lowered" = "This install is not signed with the Increased Memory Limit permission, so iOS only gives the app about %@. Java memory was lowered from %d MB to %d MB so the game is not closed while it runs. Turn the permission on with the GetMoreRam app (github.com/hugeBlack/GetMoreRam) and reinstall from SideStore, or install with iloader 2.4.1 or later (Import IPA).";
 "coco.mg.title" = "Advanced graphics (MobileGlues)";
 "coco.mg.note" = "Only for the Auto renderer (MobileGlues); applies from the next PLAY. The defaults are the setup that runs best on iPhone. If the picture breaks or the game crashes after a change, tap Reset.";
 "coco.mg.reset_all" = "Reset advanced graphics";
@@ -481,6 +481,6 @@
 "coco.update.later" = "Later";
 "coco.memory.over_safe" = "Allow above the safe maximum: %@";
 "coco.memory.over_safe_title" = "Allow above the safe maximum?";
-"coco.memory.over_safe_warning" = "This install has no increased memory limit, so the safe maximum is %d MB. Above it, iOS is likely to close the game while loading or joining a world. At your own risk. Installing with iloader 2.4.1 or newer (Import IPA) gives the increased memory limit and makes this unnecessary.";
+"coco.memory.over_safe_warning" = "This install has no increased memory limit, so the safe maximum is %d MB. Above it, iOS is likely to close the game while loading or joining a world. At your own risk. Turning on the increased memory limit with the GetMoreRam app (github.com/hugeBlack/GetMoreRam) and reinstalling from SideStore makes this unnecessary.";
 "coco.memory.over_safe_enable" = "Allow (at my own risk)";
 "coco.memory.mf_dynamic" = "Load models on demand (saves RAM): %@";

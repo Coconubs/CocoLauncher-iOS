@@ -308,7 +308,7 @@
 "coco.memory.selected" = "Cấp cho Java %d MB (%.2f GB)";
 "coco.memory.too_high" = "Vượt mức an toàn: iOS có thể tắt game khi hết bộ nhớ.";
 "coco.memory.help.on" = "Bản cài này được ký kèm quyền Increased Memory Limit nên iOS cho dùng nhiều bộ nhớ hơn. Giữ RAM Java không vượt mức an toàn hiển thị; phần còn lại dành cho mã gốc và đồ hoạ của Minecraft.";
-"coco.memory.help.off" = "Bản cài này CHƯA được ký kèm quyền Increased Memory Limit nên iOS giới hạn bộ nhớ thấp hơn. App không tự bật được quyền này, vì nó phụ thuộc cách ký app. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền. Trong lúc chưa có, giữ RAM Java không vượt mức an toàn.";
+"coco.memory.help.off" = "Bản cài này CHƯA được ký kèm quyền Increased Memory Limit nên iOS giới hạn bộ nhớ thấp hơn. App không tự bật được quyền này, vì nó phụ thuộc cách ký app. Cài bằng SideStore: dùng app GetMoreRam (github.com/hugeBlack/GetMoreRam), đăng nhập cùng Apple ID, mục App IDs › chọn CocoLauncher › Add Increased Memory Limit, rồi cài lại CocoLauncher từ SideStore. Hoặc cài bằng iloader 2.4.1 trở lên (Import IPA). Trong lúc chưa có, giữ RAM Java không vượt mức an toàn.";
 "coco.jit.slow" = "Vẫn chưa bật được JIT. Kiểm tra LocalDevVPN đã kết nối (đang bật Wi-Fi), rồi mở StikDebug bật JIT cho CocoLauncher. Có thể bấm Huỷ rồi bấm Chơi lại.";
 "coco.jit.timeout" = "Đã dừng chờ JIT sau 10 phút. Bật LocalDevVPN, mở StikDebug rồi bấm Chơi lại.";
 "coco.autolocal.title" = "Đã tải xong Minecraft";
@@ -381,7 +381,7 @@
 "coco.settings.ram_note_nolimit" = "Máy có %.1f GB RAM · khuyên dùng %d MB";
 "coco.memory.capped" = "Máy chưa có quyền tăng bộ nhớ nên tối đa %d MB cho Java (cao hơn nữa iOS sẽ tắt game).";
 "coco.memory.lowered.title" = "Đã giảm RAM cho Java";
-"coco.memory.lowered" = "Bản cài này chưa có quyền tăng bộ nhớ (Increased Memory Limit) nên iOS chỉ cho app khoảng %@. RAM cho Java đã giảm từ %d MB xuống %d MB để game không bị tắt giữa chừng. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền này.";
+"coco.memory.lowered" = "Bản cài này chưa có quyền tăng bộ nhớ (Increased Memory Limit) nên iOS chỉ cho app khoảng %@. RAM cho Java đã giảm từ %d MB xuống %d MB để game không bị tắt giữa chừng. Bật quyền bằng app GetMoreRam (github.com/hugeBlack/GetMoreRam) rồi cài lại từ SideStore, hoặc cài bằng iloader 2.4.1 trở lên (Import IPA).";
 "coco.mg.title" = "Đồ hoạ nâng cao (MobileGlues)";
 "coco.mg.note" = "Chỉ có tác dụng với trình vẽ Tự động (MobileGlues), áp dụng từ lần bấm CHƠI tiếp theo. Mặc định là bộ cài đặt chạy ổn nhất trên iPhone. Hình lỗi hoặc văng game sau khi chỉnh thì bấm Đặt lại.";
 "coco.mg.reset_all" = "Đặt lại đồ hoạ nâng cao";
@@ -433,6 +433,6 @@
 "coco.update.later" = "Để sau";
 "coco.memory.over_safe" = "Cho vượt mức an toàn: %@";
 "coco.memory.over_safe_title" = "Cho vượt mức an toàn?";
-"coco.memory.over_safe_warning" = "Bản cài này chưa có quyền tăng bộ nhớ nên mức an toàn là %d MB. Vượt mức này, iOS rất dễ tắt game khi đang tải hoặc vào thế giới. Bạn tự chịu rủi ro. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền tăng bộ nhớ và không cần bật mục này.";
+"coco.memory.over_safe_warning" = "Bản cài này chưa có quyền tăng bộ nhớ nên mức an toàn là %d MB. Vượt mức này, iOS rất dễ tắt game khi đang tải hoặc vào thế giới. Bạn tự chịu rủi ro. Bật quyền tăng bộ nhớ bằng app GetMoreRam (github.com/hugeBlack/GetMoreRam) rồi cài lại từ SideStore thì không cần bật mục này.";
 "coco.memory.over_safe_enable" = "Bật (tự chịu rủi ro)";
 "coco.memory.mf_dynamic" = "Nạp model khi cần (tiết kiệm RAM): %@";

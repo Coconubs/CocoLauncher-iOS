@@ -315,21 +315,6 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         margv[++margc] = "-XX:+MirrorMappedCodeCache";
     }
 
-    // CocoLauncher: without the increased memory limit iOS kills the whole app at ~3.3 GB, and the
-    // memory outside the Java heap is what pushes it over (a 1920 MB heap was killed while loading
-    // with no OutOfMemoryError). Serial GC has almost no native overhead (G1 keeps remembered sets
-    // and per-region data), 2 compiler threads cap the JIT's compile arenas, and a 160 MB code
-    // cache is smaller than the default 240 MB JIT mapping. Custom JVM flags come later and win.
-    if (CocoLacksMemoryEntitlement()) {
-        margv[++margc] = "-XX:+UseSerialGC";
-        // build 10: 1920 MB heap ran out while 2304 MB was killed by iOS, so squeeze the native side
-        // further: C1 only (C2's compile arenas are the biggest native spikes) and a 96 MB code cache.
-        margv[++margc] = "-XX:TieredStopAtLevel=1";
-        margv[++margc] = "-XX:CICompilerCount=1";
-        margv[++margc] = "-XX:ReservedCodeCacheSize=96m";
-        NSLog(@"[CocoLauncher] Low-memory JVM: SerialGC, C1 only, 96 MB code cache");
-    }
-
     // Disable Forge 1.16.x early progress window
     margv[++margc] = "-Dfml.earlyprogresswindow=false";
 
