@@ -79,12 +79,9 @@ $(error This platform is not currently supported for building Angel Aura Amethys
 endif
 
 # Define PLATFORM_NAME from PLATFORM
-# CocoLauncher: Rust target of Natives/cocoram (device or simulator)
-ifeq ($(PLATFORM),7)
-COCORAM_TARGET := aarch64-apple-ios-sim
-else
+# CocoLauncher: Rust target of Natives/cocoram. The simulator build (PLATFORM=7) also compiles
+# with the iPhoneOS SDK, so it links the same aarch64-apple-ios library.
 COCORAM_TARGET := aarch64-apple-ios
-endif
 
 ifeq ($(PLATFORM),2)
 PLATFORM_NAME := ios
