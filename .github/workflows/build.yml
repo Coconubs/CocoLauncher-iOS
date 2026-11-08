@@ -65,6 +65,9 @@ jobs:
           distribution: zulu
           java-version: '8'
 
+      - name: Rust for iOS (cocoram)
+        run: rustup target add aarch64-apple-ios
+
       - name: Build
         run: gmake -j"$(sysctl -n hw.ncpu)" package PLATFORM=2 BOOTJDK="$JAVA_HOME/bin"
 

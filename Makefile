@@ -266,6 +266,8 @@ check:
 
 native: dep_mg
 	echo '[Amethyst v$(VERSION)] native - start'
+	# CocoLauncher: cocoram (Rust static library, isideload) for the in-app Increased Memory Limit
+	cd $(SOURCEDIR)/Natives/cocoram && IPHONEOS_DEPLOYMENT_TARGET=14.0 cargo build --release --target aarch64-apple-ios
 	mkdir -p $(WORKINGDIR)
 	cd $(WORKINGDIR) && cmake \
 		-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \

@@ -1,6 +1,7 @@
 #import "CocoConfig.h"
 #import "CocoHomeViewController.h"
 #import "CocoPerformance.h"
+#import "CocoMemoryUnlock.h"
 #import "CocoSettingsViewController.h"
 #import "CocoUI.h"
 #import "CustomControlsViewController.h"
@@ -301,6 +302,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [column setCustomSpacing:4 afterView:self.ramNote];
     // Only without the increased memory limit entitlement: allow a heap above the safe maximum
     if (CocoLacksMemoryEntitlement()) {
+        // In-app GetMoreRam: turn on Increased Memory Limit for this App ID (Natives/cocoram)
+        [column addArrangedSubview:[self rowButton:localize(@"coco.unlock.row", nil) action:@selector(memoryUnlockTapped)]];
         self.overSafeButton = [self rowButton:@"" action:@selector(overSafeTapped)];
         [column addArrangedSubview:self.overSafeButton];
     }
@@ -554,6 +557,10 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     }];
     [sheet addSecondary:localize(@"coco.mg.cancel", nil) action:nil];
     [self presentViewController:sheet animated:YES completion:nil];
+}
+
+- (void)memoryUnlockTapped {
+    CocoPresentMemoryUnlock(self);
 }
 
 - (void)mfDynamicTapped {
