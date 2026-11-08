@@ -159,6 +159,97 @@ void CocoMigrateSettings(void) {
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }
 
+BOOL CocoHeapCappedToSafeMax(void) {
+    return !CocoHasIncreasedMemoryLimit() && !getEntitlementValue(@"com.apple.private.memorystatus");
+}
+
+int CocoMaxSelectableHeapMB(void) {
+    int deviceMax = MAX((int)(CocoDeviceMemoryMB() * 0.85) / 128 * 128, 1024);
+    if (!CocoHeapCappedToSafeMax()) {
+        return deviceMax;
+    }
+    return MIN(deviceMax, MAX(CocoSafeMaxHeapMB() / 128 * 128, 1024));
+}
+
+int CocoClampHeapMB(int requested) {
+    if (!CocoHeapCappedToSafeMax()) {
+        return requested;
+    }
+    return MIN(requested, CocoMaxSelectableHeapMB());
+}
+
+int CocoClampSavedHeap(void) {
+    int saved = (int)getPrefInt(@"java.allocated_memory");
+    int clamped = CocoClampHeapMB(saved);
+    if (clamped >= saved) {
+        return 0;
+    }
+    setPrefObject(@"java.allocated_memory", @(clamped));
+    NSLog(@"[CocoLauncher] Saved Java heap lowered from %d MB to %d MB (no increased memory limit entitlement, process limit %d MB)",
+        saved, clamped, CocoProcessMemoryLimitMB());
+    return saved;
+}
+
+#pragma mark - MobileGlues
+
+// Marks the config.json keys written by CocoLauncher (MobileGlues ignores unknown keys).
+static NSString *const CocoMGConfigMarker = @"cocoLauncher";
+
+NSArray<NSNumber *> *CocoMGMultidrawModes(void) {
+    // Compute (5) is left out: MobileGlues does not check that the GLES driver can run it.
+    // Multidraw indirect (3) is handled like Auto by this MobileGlues version.
+    return @[@0, @1, @2, @4];
+}
+
+int CocoMGMultidrawMode(void) {
+    int mode = (int)getPrefInt(@"video.mg_multidraw_mode");
+    return [CocoMGMultidrawModes() containsObject:@(mode)] ? mode : 0;
+}
+
+void CocoSetMGMultidrawMode(int mode) {
+    setPrefObject(@"video.mg_multidraw_mode", @([CocoMGMultidrawModes() containsObject:@(mode)] ? mode : 0));
+}
+
+NSString *CocoMGMultidrawName(int mode) {
+    return localize([NSString stringWithFormat:@"coco.mg.multidraw.%d", mode], nil);
+}
+
+void CocoWriteMobileGluesConfig(NSString *mgDir) {
+    if (mgDir.length == 0) {
+        return;
+    }
+    NSString *path = [mgDir stringByAppendingPathComponent:@"config.json"];
+    NSMutableDictionary *config = [NSMutableDictionary new];
+    NSData *old = [NSData dataWithContentsOfFile:path];
+    id parsed = old ? [NSJSONSerialization JSONObjectWithData:old options:0 error:nil] : nil;
+    if ([parsed isKindOfClass:NSDictionary.class]) {
+        [config addEntriesFromDictionary:parsed];
+    }
+    int mode = CocoMGMultidrawMode();
+    if (mode == 0) {
+        // Default: without the key MobileGlues uses Auto. Leave a file the player wrote alone.
+        if (config[CocoMGConfigMarker] == nil) {
+            return;
+        }
+        [config removeObjectForKey:@"multidrawMode"];
+        [config removeObjectForKey:CocoMGConfigMarker];
+        if (config.count == 0) {
+            [NSFileManager.defaultManager removeItemAtPath:path error:nil];
+            NSLog(@"[CocoLauncher] MobileGlues settings back to default, removed %@", path);
+            return;
+        }
+    } else {
+        config[@"multidrawMode"] = @(mode);
+        config[CocoMGConfigMarker] = @1;
+    }
+    NSData *data = [NSJSONSerialization dataWithJSONObject:config options:NSJSONWritingPrettyPrinted error:nil];
+    if ([data writeToFile:path atomically:YES]) {
+        NSLog(@"[CocoLauncher] MobileGlues config.json: multidrawMode=%d", mode);
+    } else {
+        NSLog(@"[CocoLauncher] Could not write %@", path);
+    }
+}
+
 NSString *CocoMemoryStatusText(void) {
     int limit = CocoProcessMemoryLimitMB();
     NSString *limitText = limit > 0 ? [NSString stringWithFormat:@"%.1f GB", limit / 1024.0] : @"?";

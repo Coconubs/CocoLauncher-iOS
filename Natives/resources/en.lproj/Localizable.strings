@@ -427,3 +427,16 @@
 "preference.title.coco_home_ui" = "Coco interface";
 "preference.detail.coco_home_ui" = "Turn off to use the full Amethyst interface (accounts, profiles, game folders).";
 "coco.settings.ram_note_nolimit" = "Device %.1f GB RAM · recommended %d MB";
+"coco.memory.capped" = "This install has no increased memory permission, so Java can use at most %d MB (iOS closes the game above that).";
+"coco.memory.lowered.title" = "Java memory lowered";
+"coco.memory.lowered" = "This install is not signed with the Increased Memory Limit permission, so iOS only gives the app about %@. Java memory was lowered from %d MB to %d MB so the game is not closed while it runs. Installing with iloader 2.4.1 or later (Import IPA) adds the permission.";
+"coco.mg.title" = "Advanced graphics (MobileGlues)";
+"coco.mg.multidraw" = "Draw mode (Multidraw): %@";
+"coco.mg.multidraw_title" = "Draw mode (Multidraw)";
+"coco.mg.sheet_message" = "How MobileGlues batches Minecraft's draw calls. Auto picks what the device supports. Applies from the next PLAY.";
+"coco.mg.multidraw.0" = "Auto (default)";
+"coco.mg.multidraw.1" = "Indirect";
+"coco.mg.multidraw.2" = "Unroll (BaseVertex)";
+"coco.mg.multidraw.4" = "DrawElements (most compatible)";
+"coco.mg.reset" = "Reset to default";
+"coco.mg.note" = "Only used by the Auto (MobileGlues) renderer. On iOS the bundled MobileGlues lets you change the draw mode only; ANGLE, shader error skipping, OpenGL extensions, the GLSL cache (30 MB) and FSR are fixed. If the picture looks wrong, try DrawElements; pick Reset to go back.";

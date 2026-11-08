@@ -28,6 +28,7 @@
 @property(nonatomic) UILabel *presetNote;
 @property(nonatomic) NSArray<CocoOptionButton *> *rendererButtons;
 @property(nonatomic) NSArray<CocoOptionButton *> *fpsButtons;
+@property(nonatomic) CocoRowButton *mgMultidrawButton;
 @property(nonatomic) UIButton *verifyButton;
 @property(nonatomic) UIStackView *footer;
 @end
@@ -278,8 +279,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     self.ramValue = CocoLabel(@"", CocoFontExtraBold, 17, COCO_ORANGE);
     [column addArrangedSubview:[self headerRow:localize(@"coco.settings.ram", nil) value:self.ramValue]];
     self.ramSlider = [[CocoSlider alloc] initWithFrame:CGRectZero];
-    int deviceMB = CocoDeviceMemoryMB();
-    int maxMB = MAX((int)(deviceMB * 0.85) / self.ramStep * self.ramStep, 1024);
+    // Without the increased memory limit entitlement: never above the safe maximum
+    int maxMB = CocoMaxSelectableHeapMB();
     self.ramSlider.minimumValue = 1024;
     self.ramSlider.maximumValue = maxMB;
     [self.ramSlider.heightAnchor constraintEqualToConstant:34].active = YES;
@@ -338,6 +339,15 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [column addArrangedSubview:rendererRow];
     [column addArrangedSubview:[self noteLabel:localize(@"coco.settings.renderer_note", nil)]];
 
+    // Advanced graphics: the MobileGlues settings that the bundled MobileGlues reads on iOS
+    UIView *mgGap = [UIView new];
+    [mgGap.heightAnchor constraintEqualToConstant:12].active = YES;
+    [column addArrangedSubview:mgGap];
+    [column addArrangedSubview:[self headerRow:localize(@"coco.mg.title", nil) value:nil]];
+    self.mgMultidrawButton = [self rowButton:@"" action:@selector(mgMultidrawTapped)];
+    [column addArrangedSubview:self.mgMultidrawButton];
+    [column addArrangedSubview:[self noteLabel:localize(@"coco.mg.note", nil)]];
+
     // 120 Hz, only on ProMotion screens
     if (UIScreen.mainScreen.maximumFramesPerSecond > 60) {
         UIView *gap = [UIView new];
@@ -371,6 +381,7 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 }
 
 - (void)refreshValues {
+    CocoClampSavedHeap();
     int ram = (int)getPrefInt(@"java.allocated_memory");
     self.ramSlider.value = ram;
     [self updateRamTexts:ram];
@@ -391,6 +402,9 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     for (CocoOptionButton *button in self.fpsButtons) {
         button.selected = (button.tag == 1) == highFps;
     }
+
+    [self.mgMultidrawButton setTitle:[NSString stringWithFormat:localize(@"coco.mg.multidraw", nil),
+        CocoMGMultidrawName(CocoMGMultidrawMode())] forState:UIControlStateNormal];
 }
 
 - (void)updateRamTexts:(int)ram {
@@ -403,6 +417,9 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     BOOL tooHigh = ram > CocoSafeMaxHeapMB();
     if (tooHigh) {
         note = [note stringByAppendingFormat:@"\n%@", localize(@"coco.memory.too_high", nil)];
+    } else if (CocoHeapCappedToSafeMax()) {
+        note = [note stringByAppendingFormat:@"\n%@",
+            [NSString stringWithFormat:localize(@"coco.memory.capped", nil), CocoMaxSelectableHeapMB()]];
     }
     self.ramNote.text = note;
     self.ramNote.textColor = tooHigh ? COCO_RED : COCO_DIM;
@@ -459,6 +476,28 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     profiles.profileDict[@"profiles"] = (id)list;
     [profiles save];
     [self refreshValues];
+}
+
+- (void)mgMultidrawTapped {
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.mg.multidraw_title", nil)
+        message:localize(@"coco.mg.sheet_message", nil)];
+    int current = CocoMGMultidrawMode();
+    __weak CocoSettingsViewController *weakSelf = self;
+    for (NSNumber *mode in CocoMGMultidrawModes()) {
+        NSString *title = CocoMGMultidrawName(mode.intValue);
+        if (mode.intValue == current) {
+            title = [@"\u2713 " stringByAppendingString:title];
+        }
+        [sheet addSecondary:title action:^{
+            CocoSetMGMultidrawMode(mode.intValue);
+            [weakSelf refreshValues];
+        }];
+    }
+    [sheet addPrimary:localize(@"coco.mg.reset", nil) action:^{
+        CocoSetMGMultidrawMode(0);
+        [weakSelf refreshValues];
+    }];
+    [self presentViewController:sheet animated:YES completion:nil];
 }
 
 - (void)fpsTapped:(CocoOptionButton *)sender {

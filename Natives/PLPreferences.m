@@ -34,6 +34,8 @@
             @"quality_preset": cocoPreset,
             @"resolution": @(CocoPresetResolution(cocoPreset)),
             @"max_framerate": @(CocoPresetMaxFramerate(cocoPreset)),
+            // CocoLauncher: MobileGlues multidrawMode (0 = Auto, the MobileGlues default)
+            @"mg_multidraw_mode": @0,
             @"performance_hud": @NO,
             @"fullscreen_airplay": @YES,
             @"silence_other_audio": @NO,

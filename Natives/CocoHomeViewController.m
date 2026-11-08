@@ -6,6 +6,7 @@
 #import "authenticator/BaseAuthenticator.h"
 #import "CocoConfig.h"
 #import "CocoHomeViewController.h"
+#import "CocoPerformance.h"
 #import "CocoSettingsViewController.h"
 #import "CocoUI.h"
 #import "CustomControlsViewController.h"
@@ -667,6 +668,9 @@ void CocoReloadRootViewController(void) {
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
+    // CocoLauncher: a heap saved above what iOS allows this install (no increased memory
+    // limit entitlement) gets the app killed while the game loads, so lower it first.
+    int heapLoweredFrom = CocoClampSavedHeap();
     [self refreshMeta];
     [self startPing];
     if (!self.didAppearOnce) {
@@ -674,6 +678,22 @@ void CocoReloadRootViewController(void) {
         [self checkInstallation];
         [self runPreviewHooks];
     }
+    if (heapLoweredFrom > 0) {
+        [self showHeapLoweredFrom:heapLoweredFrom];
+    }
+}
+
+- (void)showHeapLoweredFrom:(int)oldMB {
+    if (self.presentedViewController) {
+        return;
+    }
+    int limit = CocoProcessMemoryLimitMB();
+    NSString *limitText = limit > 0 ? [NSString stringWithFormat:@"%.1f GB", limit / 1024.0] : @"?";
+    NSString *message = [NSString stringWithFormat:localize(@"coco.memory.lowered", nil),
+        limitText, oldMB, (int)getPrefInt(@"java.allocated_memory")];
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.memory.lowered.title", nil) message:message];
+    [sheet addSecondary:localize(@"OK", nil) action:nil];
+    [self presentViewController:sheet animated:YES completion:nil];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {

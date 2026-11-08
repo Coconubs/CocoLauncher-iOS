@@ -56,3 +56,29 @@ void CocoMigrateSettings(void);
 
 // Short status text for Settings: device RAM, process limit, entitlement.
 NSString *CocoMemoryStatusText(void);
+
+// YES when the Java heap must stay under CocoSafeMaxHeapMB(): the app has neither the
+// increased-memory-limit entitlement nor com.apple.private.memorystatus, so iOS kills it
+// as soon as it passes the per-process limit.
+BOOL CocoHeapCappedToSafeMax(void);
+
+// Largest Java heap the player can pick on this device, in MB (multiple of 128, at least 1024).
+int CocoMaxSelectableHeapMB(void);
+
+// The requested heap, or the largest allowed one when the heap is capped and the request is above it.
+int CocoClampHeapMB(int requested);
+
+// Lowers a saved heap that is above what this device allows. Returns the old value, or 0 if unchanged.
+int CocoClampSavedHeap(void);
+
+// MobileGlues "multidrawMode" (MG_DIR_PATH/config.json). The bundled MobileGlues reads only this key on
+// iOS; its other settings are fixed for Apple platforms in its source (config/settings.cpp).
+// Allowed values: 0 Auto (MobileGlues default), 1 Indirect, 2 Unroll (BaseVertex), 4 DrawElements.
+NSArray<NSNumber *> *CocoMGMultidrawModes(void);
+int CocoMGMultidrawMode(void);
+void CocoSetMGMultidrawMode(int mode);
+NSString *CocoMGMultidrawName(int mode);
+
+// Writes config.json in the MobileGlues folder for the current settings. With the default (Auto)
+// it removes only what this launcher wrote, so a default setup behaves exactly as without a file.
+void CocoWriteMobileGluesConfig(NSString *mgDir);

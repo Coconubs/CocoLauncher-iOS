@@ -12,6 +12,7 @@
 #include "utils.h"
 
 #import "ios_uikit_bridge.h"
+#import "CocoPerformance.h"
 #import "JavaLauncher.h"
 #import "LauncherPreferences.h"
 #import "MinecraftOptionUtils.h"
@@ -213,6 +214,8 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     NSString *mgDir = [@(getenv("AME_HOME")) stringByAppendingPathComponent:@"MG"];
     [fm createDirectoryAtPath:mgDir withIntermediateDirectories:YES attributes:nil error:nil];
     setenv("MG_DIR_PATH", mgDir.fileSystemRepresentation, 1);
+    // CocoLauncher: advanced graphics settings (Settings > MobileGlues) -> MG_DIR_PATH/config.json
+    CocoWriteMobileGluesConfig(mgDir);
     // Keep vsync off even if a mod turns it back on (frame pacing is done by iOS)
     setenv("COCO_FORCE_NO_VSYNC", "1", 1);
 
@@ -222,6 +225,18 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         allocmem = roundf((NSProcessInfo.processInfo.physicalMemory >> 20) * autoRatio);
     } else {
         allocmem = getPrefInt(@"java.allocated_memory");
+    }
+    // CocoLauncher: without the increased memory limit entitlement iOS kills the app as soon as it
+    // passes the per-process limit (about 3.3 GB on an 8 GB iPhone), so the Java heap has to leave
+    // room for Metaspace, the GL driver and native libraries. Never start above the safe maximum.
+    int cappedmem = CocoClampHeapMB(allocmem);
+    if (cappedmem < allocmem) {
+        NSLog(@"[CocoLauncher] Java heap %d MB is above the safe maximum without the increased memory limit entitlement (process limit %d MB), using %d MB",
+            allocmem, CocoProcessMemoryLimitMB(), cappedmem);
+        if (!getPrefBool(@"java.auto_ram")) {
+            setPrefObject(@"java.allocated_memory", @(cappedmem));
+        }
+        allocmem = cappedmem;
     }
     NSLog(@"[JavaLauncher] Max RAM allocation is set to %d MB", allocmem);
     if (!validateVirtualMemorySpace(allocmem)) {
@@ -236,7 +251,19 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
 
     // Setup options.txt
     [MinecraftOptionUtils setupOptionsAtGameDir:gameDir];
-    
+
+    // CocoLauncher: make the game directory the working directory of the process as well. Only
+    // -Duser.dir was set before, but java.nio resolves relative paths against the real working
+    // directory, so Cobblemon could not write showdown/showdown.zip (NoSuchFileException).
+    if (gameDir.length > 0) {
+        [fm createDirectoryAtPath:gameDir withIntermediateDirectories:YES attributes:nil error:nil];
+        if (chdir(gameDir.fileSystemRepresentation) == 0) {
+            NSLog(@"[JavaLauncher] Working directory set to %@", gameDir);
+        } else {
+            NSLog(@"[JavaLauncher] chdir(%@) failed: %s", gameDir, strerror(errno));
+        }
+    }
+
     int margc = -1;
     const char *margv[1000];
 

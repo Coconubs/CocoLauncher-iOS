@@ -408,7 +408,8 @@
                 @"icon": @"memorychip",
                 @"type": self.typeSlider,
                 @"min": @(250),
-                @"max": @((NSProcessInfo.processInfo.physicalMemory / 1048576) * 0.85),
+                // CocoLauncher: without the increased memory limit entitlement, not above the safe maximum
+                @"max": @(CocoMaxSelectableHeapMB()),
                 @"enableCondition": ^BOOL(){
                     return !getPrefBool(@"java.auto_ram") && whenNotInGame();
                 },

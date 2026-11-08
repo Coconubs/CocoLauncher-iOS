@@ -379,3 +379,16 @@
 "preference.title.coco_home_ui" = "Giao diện Coco";
 "preference.detail.coco_home_ui" = "Tắt để dùng giao diện Amethyst đầy đủ (quản lý tài khoản, hồ sơ, thư mục game).";
 "coco.settings.ram_note_nolimit" = "Máy có %.1f GB RAM · khuyên dùng %d MB";
+"coco.memory.capped" = "Máy chưa có quyền tăng bộ nhớ nên tối đa %d MB cho Java (cao hơn nữa iOS sẽ tắt game).";
+"coco.memory.lowered.title" = "Đã giảm RAM cho Java";
+"coco.memory.lowered" = "Bản cài này chưa có quyền tăng bộ nhớ (Increased Memory Limit) nên iOS chỉ cho app khoảng %@. RAM cho Java đã giảm từ %d MB xuống %d MB để game không bị tắt giữa chừng. Cài bằng iloader 2.4.1 trở lên (Import IPA) sẽ có quyền này.";
+"coco.mg.title" = "Đồ hoạ nâng cao (MobileGlues)";
+"coco.mg.multidraw" = "Chế độ vẽ (Multidraw): %@";
+"coco.mg.multidraw_title" = "Chế độ vẽ (Multidraw)";
+"coco.mg.sheet_message" = "Cách MobileGlues gom các lệnh vẽ của Minecraft. Tự động chọn theo khả năng của máy. Áp dụng từ lần bấm CHƠI tiếp theo.";
+"coco.mg.multidraw.0" = "Tự động (mặc định)";
+"coco.mg.multidraw.1" = "Indirect";
+"coco.mg.multidraw.2" = "Unroll (BaseVertex)";
+"coco.mg.multidraw.4" = "DrawElements (tương thích nhất)";
+"coco.mg.reset" = "Đặt lại mặc định";
+"coco.mg.note" = "Chỉ có tác dụng với trình vẽ Tự động (MobileGlues). Trên iOS, bản MobileGlues trong app chỉ cho chỉnh chế độ vẽ; ANGLE, bỏ qua lỗi shader, các mở rộng OpenGL, cache GLSL (30 MB) và FSR được đặt cố định. Hình lỗi thì thử DrawElements, muốn quay lại thì chọn Đặt lại.";
