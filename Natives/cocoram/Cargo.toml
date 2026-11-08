@@ -1,0 +1,23 @@
+[package]
+name = "cocoram"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Turns on Increased Memory Limit for CocoLauncher's own App ID (built on isideload, MIT)"
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+# isideload by nab138 (MIT), the library behind iloader: Apple ID login + developer services
+isideload = { version = "=0.5.2", default-features = false, features = ["fs-storage", "tokio-mt"] }
+tokio = { version = "1.49", features = ["rt-multi-thread", "macros"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "tls12", "std"] }
+serde_json = "1.0"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,18 @@
+name: cocoram check
+on:
+  push:
+    branches: [ cocoram ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust for iOS
+        run: rustup target add aarch64-apple-ios
+      - name: Build libcocoram.a
+        working-directory: Natives/cocoram
+        run: |
+          cargo build --release --target aarch64-apple-ios
+          ls -la target/aarch64-apple-ios/release/libcocoram.a
+          nm -gU target/aarch64-apple-ios/release/libcocoram.a | grep cocoram_
