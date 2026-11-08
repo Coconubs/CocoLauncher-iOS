@@ -19,3 +19,12 @@
 
 // Help page shown in the "News" tab.
 #define COCO_HELP_URL           @"https://coconubs.github.io/CocoLauncher-iOS/huong-dan.html"
+
+// Coco home screen (same look as CocoLauncher Android).
+#define COCO_MINECRAFT_VERSION  @"1.21.1"
+#define COCO_SERVER_HOST        @"185.207.166.112"
+#define COCO_SERVER_PORT        19017
+#define COCO_DISCORD_URL        @"https://discord.gg/hyspace"
+// Event text over the home art; the copy bundled in resources/cocoui is used
+// when this one can't be downloaded.
+#define COCO_EVENT_URL          @"https://coconubs.github.io/CocoLauncher-iOS/hero_event.json"
