@@ -9,7 +9,7 @@ OUTPUTDIR   := $(SOURCEDIR)/artifacts
 WORKINGDIR  := $(SOURCEDIR)/Natives/build
 DETECTPLAT  := $(shell uname -s)
 DETECTARCH  := $(shell uname -m)
-VERSION     := 1.0.0
+VERSION     := 1.0.1
 BRANCH      := $(shell git branch --show-current)
 COMMIT      := $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
 PLATFORM    ?= 2
@@ -311,6 +311,14 @@ jre: native
 
 dep_mg:
 	echo '[Amethyst v$(VERSION)] dep_mg - start'
+	# CocoLauncher: let MobileGlues read config.json on Apple too (advanced graphics settings).
+	# Applied once; a patch that no longer fits the MobileGlues submodule stops the build.
+	cd $(SOURCEDIR)/Natives/external/MobileGlues && \
+		if git apply --reverse --check $(SOURCEDIR)/Natives/patches/mobileglues-apple-config.patch 2>/dev/null; then \
+			echo 'MobileGlues: Apple config patch already applied'; \
+		else \
+			git apply $(SOURCEDIR)/Natives/patches/mobileglues-apple-config.patch && echo 'MobileGlues: Apple config patch applied'; \
+		fi
 	mkdir -p $(WORKINGDIR)/mobileglues
 	cd $(WORKINGDIR)/mobileglues && cmake \
 		-DMACOS="1" \

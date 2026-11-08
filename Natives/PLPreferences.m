@@ -34,8 +34,17 @@
             @"quality_preset": cocoPreset,
             @"resolution": @(CocoPresetResolution(cocoPreset)),
             @"max_framerate": @(CocoPresetMaxFramerate(cocoPreset)),
-            // CocoLauncher: MobileGlues multidrawMode (0 = Auto, the MobileGlues default)
+            // CocoLauncher: advanced graphics (MobileGlues config.json), see CocoMGOptions()
+            @"mg_no_error": @2,
+            @"mg_ext_timer_query": @0,
+            @"mg_ext_compute_shader": @0,
+            @"mg_ext_dsa": @0,
+            @"mg_ext_gl43": @0,
+            @"mg_glsl_cache_mb": @64,
             @"mg_multidraw_mode": @0,
+            @"mg_angle_depth_fix": @0,
+            @"mg_gl_version": @0,
+            @"mg_fsr1": @0,
             @"performance_hud": @NO,
             @"fullscreen_airplay": @YES,
             @"silence_other_audio": @NO,

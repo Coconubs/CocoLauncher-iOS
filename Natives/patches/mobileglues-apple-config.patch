@@ -1,0 +1,43 @@
+--- a/src/main/cpp/config/settings.cpp
++++ b/src/main/cpp/config/settings.cpp
+@@ -26,6 +26,40 @@
+     global_settings.custom_gl_version = {0, 0, 0}; // will go default
+     global_settings.fsr1_setting = FSR1_Quality_Preset::Disabled;
+ 
++    // CocoLauncher: the defaults above stay, but every key present in MG_DIR_PATH/config.json
++    // (written by the launcher's advanced graphics settings) overrides its default.
++    // No file or a missing key keeps the behaviour of upstream MobileGlues on Apple.
++    if (initialized || config_refresh()) {
++        int v = config_get_int("enableNoError");
++        if (v == static_cast<int>(NoErrorConfig::Disable)) {
++            global_settings.ignore_error = IgnoreErrorLevel::None;
++        } else if (v == static_cast<int>(NoErrorConfig::Level1)) {
++            global_settings.ignore_error = IgnoreErrorLevel::Partial;
++        } else if (v == static_cast<int>(NoErrorConfig::Level2)) {
++            global_settings.ignore_error = IgnoreErrorLevel::Full;
++        }
++        v = config_get_int("enableExtGL43");
++        if (v >= 0) global_settings.ext_gl43 = v > 0;
++        v = config_get_int("enableExtComputeShader");
++        if (v >= 0) global_settings.ext_compute_shader = v > 0;
++        v = config_get_int("enableExtTimerQuery");
++        if (v >= 0) global_settings.ext_timer_query = v > 0;
++        v = config_get_int("enableExtDirectStateAccess");
++        if (v >= 0) global_settings.ext_direct_state_access = v > 0;
++        v = config_get_int("maxGlslCacheSize");
++        if (v >= 0 && v <= 1024) global_settings.max_glsl_cache_size = static_cast<size_t>(v) * 1024 * 1024;
++        v = config_get_int("angleDepthClearFixMode");
++        if (v >= 0 && v < static_cast<int>(AngleDepthClearFixMode::MaxValue)) {
++            global_settings.angle_depth_clear_fix_mode = static_cast<AngleDepthClearFixMode>(v);
++        }
++        v = config_get_int("customGLVersion");
++        if (v == 32 || v == 33 || (v >= 40 && v <= 46)) global_settings.custom_gl_version = Version(v);
++        v = config_get_int("fsr1Setting");
++        if (v >= 0 && v < static_cast<int>(FSR1_Quality_Preset::MaxValue)) {
++            global_settings.fsr1_setting = static_cast<FSR1_Quality_Preset>(v);
++        }
++    }
++
+ #else
+ 
+     int success = initialized;

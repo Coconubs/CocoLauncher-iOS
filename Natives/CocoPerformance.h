@@ -71,14 +71,17 @@ int CocoClampHeapMB(int requested);
 // Lowers a saved heap that is above what this device allows. Returns the old value, or 0 if unchanged.
 int CocoClampSavedHeap(void);
 
-// MobileGlues "multidrawMode" (MG_DIR_PATH/config.json). The bundled MobileGlues reads only this key on
-// iOS; its other settings are fixed for Apple platforms in its source (config/settings.cpp).
-// Allowed values: 0 Auto (MobileGlues default), 1 Indirect, 2 Unroll (BaseVertex), 4 DrawElements.
-NSArray<NSNumber *> *CocoMGMultidrawModes(void);
-int CocoMGMultidrawMode(void);
-void CocoSetMGMultidrawMode(int mode);
-NSString *CocoMGMultidrawName(int mode);
+// Advanced graphics: MobileGlues settings written to MG_DIR_PATH/config.json before every launch.
+// The MobileGlues build in this app reads them on iOS too (Natives/patches/mobileglues-apple-config.patch).
+// Each option: @"id", @"pref" (key in the "video" section), @"mgKey" (config.json key),
+// @"values" (allowed NSNumber values), @"def" (CocoLauncher default).
+NSArray<NSDictionary *> *CocoMGOptions(void);
+int CocoMGValue(NSDictionary *option);
+void CocoSetMGValue(NSDictionary *option, int value);
+// Display name of a value (localized), e.g. "Tắt", "64 MB", "OpenGL 4.3".
+NSString *CocoMGValueName(NSDictionary *option, int value);
+// Back to the CocoLauncher defaults for every MobileGlues option.
+void CocoResetMGOptions(void);
 
-// Writes config.json in the MobileGlues folder for the current settings. With the default (Auto)
-// it removes only what this launcher wrote, so a default setup behaves exactly as without a file.
+// Writes MG_DIR_PATH/config.json with every option above.
 void CocoWriteMobileGluesConfig(NSString *mgDir);

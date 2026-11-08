@@ -192,26 +192,74 @@ int CocoClampSavedHeap(void) {
 
 #pragma mark - MobileGlues
 
-// Marks the config.json keys written by CocoLauncher (MobileGlues ignores unknown keys).
+// Marks a config.json written by CocoLauncher (MobileGlues ignores unknown keys).
 static NSString *const CocoMGConfigMarker = @"cocoLauncher";
 
-NSArray<NSNumber *> *CocoMGMultidrawModes(void) {
-    // Compute (5) is left out: MobileGlues does not check that the GLES driver can run it.
-    // Multidraw indirect (3) is handled like Auto by this MobileGlues version.
-    return @[@0, @1, @2, @4];
+static NSDictionary *CocoMGOption(NSString *optionId, NSString *mgKey, NSArray<NSNumber *> *values, int def) {
+    return @{@"id": optionId, @"pref": [@"video.mg_" stringByAppendingString:optionId], @"mgKey": mgKey,
+        @"values": values, @"def": @(def)};
 }
 
-int CocoMGMultidrawMode(void) {
-    int mode = (int)getPrefInt(@"video.mg_multidraw_mode");
-    return [CocoMGMultidrawModes() containsObject:@(mode)] ? mode : 0;
+NSArray<NSDictionary *> *CocoMGOptions(void) {
+    static NSArray<NSDictionary *> *options;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        // Defaults = the setup the server owner found best on iPhone (8/11/2026): MobileGlues defaults for
+        // Apple except Direct State Access off and a 64 MB GLSL cache.
+        options = @[
+            // 1 Off, 2 Level 1 (partial), 3 Level 2 (full); MobileGlues on Apple: partial
+            CocoMGOption(@"no_error", @"enableNoError", @[@1, @2, @3], 2),
+            CocoMGOption(@"ext_timer_query", @"enableExtTimerQuery", @[@0, @1], 0),
+            CocoMGOption(@"ext_compute_shader", @"enableExtComputeShader", @[@0, @1], 0),
+            CocoMGOption(@"ext_dsa", @"enableExtDirectStateAccess", @[@0, @1], 0),
+            CocoMGOption(@"ext_gl43", @"enableExtGL43", @[@0, @1], 0),
+            CocoMGOption(@"glsl_cache_mb", @"maxGlslCacheSize", @[@0, @30, @64, @128, @256], 64),
+            // 0 Auto, 1 Indirect, 2 Unroll (BaseVertex), 4 DrawElements. Compute (5) is left out: MobileGlues
+            // does not check that the driver can run it. 3 behaves like Auto in this MobileGlues version.
+            CocoMGOption(@"multidraw_mode", @"multidrawMode", @[@0, @1, @2, @4], 0),
+            CocoMGOption(@"angle_depth_fix", @"angleDepthClearFixMode", @[@0, @1, @2], 0),
+            // 0 = MobileGlues default (OpenGL 4.0)
+            CocoMGOption(@"gl_version", @"customGLVersion", @[@0, @32, @33, @40, @41, @42, @43, @44, @45, @46], 0),
+            // 0 Off, 1 Ultra quality, 2 Quality, 3 Balanced, 4 Performance
+            CocoMGOption(@"fsr1", @"fsr1Setting", @[@0, @1, @2, @3, @4], 0),
+        ];
+    });
+    return options;
 }
 
-void CocoSetMGMultidrawMode(int mode) {
-    setPrefObject(@"video.mg_multidraw_mode", @([CocoMGMultidrawModes() containsObject:@(mode)] ? mode : 0));
+int CocoMGValue(NSDictionary *option) {
+    id saved = getPrefObject(option[@"pref"]);
+    if (saved && [option[@"values"] containsObject:@([saved intValue])]) {
+        return [saved intValue];
+    }
+    return [option[@"def"] intValue];
 }
 
-NSString *CocoMGMultidrawName(int mode) {
-    return localize([NSString stringWithFormat:@"coco.mg.multidraw.%d", mode], nil);
+void CocoSetMGValue(NSDictionary *option, int value) {
+    if (![option[@"values"] containsObject:@(value)]) {
+        value = [option[@"def"] intValue];
+    }
+    setPrefObject(option[@"pref"], @(value));
+}
+
+NSString *CocoMGValueName(NSDictionary *option, int value) {
+    NSString *optionId = option[@"id"];
+    if ([option[@"values"] isEqualToArray:@[@0, @1]]) {
+        return localize(value ? @"coco.mg.val.on" : @"coco.mg.val.off", nil);
+    }
+    if ([optionId isEqualToString:@"glsl_cache_mb"]) {
+        return value == 0 ? localize(@"coco.mg.val.off", nil) : [NSString stringWithFormat:@"%d MB", value];
+    }
+    if ([optionId isEqualToString:@"gl_version"] && value != 0) {
+        return [NSString stringWithFormat:@"OpenGL %d.%d", value / 10, value % 10];
+    }
+    return localize([NSString stringWithFormat:@"coco.mg.%@.%d", optionId, value], nil);
+}
+
+void CocoResetMGOptions(void) {
+    for (NSDictionary *option in CocoMGOptions()) {
+        setPrefObject(option[@"pref"], option[@"def"]);
+    }
 }
 
 void CocoWriteMobileGluesConfig(NSString *mgDir) {
@@ -225,26 +273,16 @@ void CocoWriteMobileGluesConfig(NSString *mgDir) {
     if ([parsed isKindOfClass:NSDictionary.class]) {
         [config addEntriesFromDictionary:parsed];
     }
-    int mode = CocoMGMultidrawMode();
-    if (mode == 0) {
-        // Default: without the key MobileGlues uses Auto. Leave a file the player wrote alone.
-        if (config[CocoMGConfigMarker] == nil) {
-            return;
-        }
-        [config removeObjectForKey:@"multidrawMode"];
-        [config removeObjectForKey:CocoMGConfigMarker];
-        if (config.count == 0) {
-            [NSFileManager.defaultManager removeItemAtPath:path error:nil];
-            NSLog(@"[CocoLauncher] MobileGlues settings back to default, removed %@", path);
-            return;
-        }
-    } else {
-        config[@"multidrawMode"] = @(mode);
-        config[CocoMGConfigMarker] = @1;
+    NSMutableArray<NSString *> *summary = [NSMutableArray new];
+    for (NSDictionary *option in CocoMGOptions()) {
+        int value = CocoMGValue(option);
+        config[option[@"mgKey"]] = @(value);
+        [summary addObject:[NSString stringWithFormat:@"%@=%d", option[@"mgKey"], value]];
     }
+    config[CocoMGConfigMarker] = @1;
     NSData *data = [NSJSONSerialization dataWithJSONObject:config options:NSJSONWritingPrettyPrinted error:nil];
     if ([data writeToFile:path atomically:YES]) {
-        NSLog(@"[CocoLauncher] MobileGlues config.json: multidrawMode=%d", mode);
+        NSLog(@"[CocoLauncher] MobileGlues config.json: %@", [summary componentsJoinedByString:@", "]);
     } else {
         NSLog(@"[CocoLauncher] Could not write %@", path);
     }

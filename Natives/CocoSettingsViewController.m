@@ -28,7 +28,7 @@
 @property(nonatomic) UILabel *presetNote;
 @property(nonatomic) NSArray<CocoOptionButton *> *rendererButtons;
 @property(nonatomic) NSArray<CocoOptionButton *> *fpsButtons;
-@property(nonatomic) CocoRowButton *mgMultidrawButton;
+@property(nonatomic) NSArray<CocoRowButton *> *mgButtons;
 @property(nonatomic) UIButton *verifyButton;
 @property(nonatomic) UIStackView *footer;
 @end
@@ -339,13 +339,21 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [column addArrangedSubview:rendererRow];
     [column addArrangedSubview:[self noteLabel:localize(@"coco.settings.renderer_note", nil)]];
 
-    // Advanced graphics: the MobileGlues settings that the bundled MobileGlues reads on iOS
+    // Advanced graphics: MobileGlues settings (config.json), one row per option + reset
     UIView *mgGap = [UIView new];
     [mgGap.heightAnchor constraintEqualToConstant:12].active = YES;
     [column addArrangedSubview:mgGap];
     [column addArrangedSubview:[self headerRow:localize(@"coco.mg.title", nil) value:nil]];
-    self.mgMultidrawButton = [self rowButton:@"" action:@selector(mgMultidrawTapped)];
-    [column addArrangedSubview:self.mgMultidrawButton];
+    NSMutableArray<CocoRowButton *> *mgButtons = [NSMutableArray new];
+    NSArray<NSDictionary *> *mgOptions = CocoMGOptions();
+    for (NSUInteger i = 0; i < mgOptions.count; i++) {
+        CocoRowButton *button = [self rowButton:@"" action:@selector(mgOptionTapped:)];
+        button.tag = (NSInteger)i;
+        [column addArrangedSubview:button];
+        [mgButtons addObject:button];
+    }
+    self.mgButtons = mgButtons;
+    [column addArrangedSubview:[self rowButton:localize(@"coco.mg.reset_all", nil) action:@selector(mgResetAllTapped)]];
     [column addArrangedSubview:[self noteLabel:localize(@"coco.mg.note", nil)]];
 
     // 120 Hz, only on ProMotion screens
@@ -403,8 +411,13 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
         button.selected = (button.tag == 1) == highFps;
     }
 
-    [self.mgMultidrawButton setTitle:[NSString stringWithFormat:localize(@"coco.mg.multidraw", nil),
-        CocoMGMultidrawName(CocoMGMultidrawMode())] forState:UIControlStateNormal];
+    NSArray<NSDictionary *> *mgOptions = CocoMGOptions();
+    for (CocoRowButton *button in self.mgButtons) {
+        NSDictionary *option = mgOptions[(NSUInteger)button.tag];
+        NSString *label = localize([NSString stringWithFormat:@"coco.mg.opt.%@", option[@"id"]], nil);
+        [button setTitle:[NSString stringWithFormat:@"%@: %@", label, CocoMGValueName(option, CocoMGValue(option))]
+            forState:UIControlStateNormal];
+    }
 }
 
 - (void)updateRamTexts:(int)ram {
@@ -478,25 +491,44 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [self refreshValues];
 }
 
-- (void)mgMultidrawTapped {
-    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.mg.multidraw_title", nil)
-        message:localize(@"coco.mg.sheet_message", nil)];
-    int current = CocoMGMultidrawMode();
+- (void)mgOptionTapped:(CocoRowButton *)sender {
+    NSArray<NSDictionary *> *mgOptions = CocoMGOptions();
+    if (sender.tag < 0 || (NSUInteger)sender.tag >= mgOptions.count) {
+        return;
+    }
+    NSDictionary *option = mgOptions[(NSUInteger)sender.tag];
+    NSString *optionId = option[@"id"];
+    CocoSheetViewController *sheet = [CocoSheetViewController
+        sheetWithTitle:localize([NSString stringWithFormat:@"coco.mg.opt.%@", optionId], nil)
+        message:localize([NSString stringWithFormat:@"coco.mg.help.%@", optionId], nil)];
+    int current = CocoMGValue(option);
+    int def = [option[@"def"] intValue];
     __weak CocoSettingsViewController *weakSelf = self;
-    for (NSNumber *mode in CocoMGMultidrawModes()) {
-        NSString *title = CocoMGMultidrawName(mode.intValue);
-        if (mode.intValue == current) {
+    for (NSNumber *value in option[@"values"]) {
+        NSString *title = CocoMGValueName(option, value.intValue);
+        if (value.intValue == def) {
+            title = [title stringByAppendingString:localize(@"coco.mg.default_suffix", nil)];
+        }
+        if (value.intValue == current) {
             title = [@"\u2713 " stringByAppendingString:title];
         }
         [sheet addSecondary:title action:^{
-            CocoSetMGMultidrawMode(mode.intValue);
+            CocoSetMGValue(option, value.intValue);
             [weakSelf refreshValues];
         }];
     }
-    [sheet addPrimary:localize(@"coco.mg.reset", nil) action:^{
-        CocoSetMGMultidrawMode(0);
+    [self presentViewController:sheet animated:YES completion:nil];
+}
+
+- (void)mgResetAllTapped {
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.mg.reset_all", nil)
+        message:localize(@"coco.mg.reset_all_message", nil)];
+    __weak CocoSettingsViewController *weakSelf = self;
+    [sheet addPrimary:localize(@"coco.mg.reset_all", nil) action:^{
+        CocoResetMGOptions();
         [weakSelf refreshValues];
     }];
+    [sheet addSecondary:localize(@"coco.mg.cancel", nil) action:nil];
     [self presentViewController:sheet animated:YES completion:nil];
 }
 
