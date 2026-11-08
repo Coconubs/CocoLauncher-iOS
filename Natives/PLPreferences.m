@@ -82,6 +82,8 @@
                 @"21": @"internal"
             }.mutableCopy,
             @"java_args": @"",
+            // CocoLauncher: let the player pick a heap above the safe maximum (no increased memory limit)
+            @"coco_allow_over_safe": @NO,
             @"env_variables": @"",
             @"auto_ram": @NO,
             @"allocated_memory": [PLPreferences cocoDefaultAllocatedMemory]

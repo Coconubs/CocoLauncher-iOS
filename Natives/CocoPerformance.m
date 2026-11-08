@@ -159,8 +159,13 @@ void CocoMigrateSettings(void) {
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }
 
-BOOL CocoHeapCappedToSafeMax(void) {
+BOOL CocoLacksMemoryEntitlement(void) {
     return !CocoHasIncreasedMemoryLimit() && !getEntitlementValue(@"com.apple.private.memorystatus");
+}
+
+BOOL CocoHeapCappedToSafeMax(void) {
+    // The player can lift the cap at their own risk (Settings > Allow above the safe maximum)
+    return CocoLacksMemoryEntitlement() && !getPrefBool(@"java.coco_allow_over_safe");
 }
 
 int CocoMaxSelectableHeapMB(void) {

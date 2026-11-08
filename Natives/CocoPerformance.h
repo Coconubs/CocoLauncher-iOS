@@ -61,6 +61,8 @@ NSString *CocoMemoryStatusText(void);
 // increased-memory-limit entitlement nor com.apple.private.memorystatus, so iOS kills it
 // as soon as it passes the per-process limit.
 BOOL CocoHeapCappedToSafeMax(void);
+// No increased-memory-limit / memorystatus entitlement (the cap applies unless the player lifts it).
+BOOL CocoLacksMemoryEntitlement(void);
 
 // Largest Java heap the player can pick on this device, in MB (multiple of 128, at least 1024).
 int CocoMaxSelectableHeapMB(void);

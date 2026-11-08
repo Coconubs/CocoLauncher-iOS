@@ -18,6 +18,7 @@
 @property(nonatomic) CocoSlider *ramSlider;
 @property(nonatomic) UILabel *ramValue;
 @property(nonatomic) UILabel *ramNote;
+@property(nonatomic) CocoRowButton *overSafeButton;
 @property(nonatomic) UILabel *ramEntitlement;
 @property(nonatomic) int ramStep;
 
@@ -297,6 +298,11 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [self.ramEntitlement addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(showMemoryHelp)]];
     [column addArrangedSubview:self.ramEntitlement];
     [column setCustomSpacing:4 afterView:self.ramNote];
+    // Only without the increased memory limit entitlement: allow a heap above the safe maximum
+    if (CocoLacksMemoryEntitlement()) {
+        self.overSafeButton = [self rowButton:@"" action:@selector(overSafeTapped)];
+        [column addArrangedSubview:self.overSafeButton];
+    }
 
     UIView *gap1 = [UIView new];
     [gap1.heightAnchor constraintEqualToConstant:12].active = YES;
@@ -391,7 +397,13 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 - (void)refreshValues {
     CocoClampSavedHeap();
     int ram = (int)getPrefInt(@"java.allocated_memory");
+    self.ramSlider.maximumValue = CocoMaxSelectableHeapMB();
     self.ramSlider.value = ram;
+    if (self.overSafeButton) {
+        [self.overSafeButton setTitle:[NSString stringWithFormat:localize(@"coco.memory.over_safe", nil),
+            localize(getPrefBool(@"java.coco_allow_over_safe") ? @"coco.mg.val.on" : @"coco.mg.val.off", nil)]
+            forState:UIControlStateNormal];
+    }
     [self updateRamTexts:ram];
 
     int resolution = MIN((int)getPrefInt(@"video.resolution"), 100);
@@ -517,6 +529,24 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
             [weakSelf refreshValues];
         }];
     }
+    [self presentViewController:sheet animated:YES completion:nil];
+}
+
+- (void)overSafeTapped {
+    __weak CocoSettingsViewController *weakSelf = self;
+    if (getPrefBool(@"java.coco_allow_over_safe")) {
+        setPrefBool(@"java.coco_allow_over_safe", NO);
+        CocoClampSavedHeap();
+        [self refreshValues];
+        return;
+    }
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.memory.over_safe_title", nil)
+        message:[NSString stringWithFormat:localize(@"coco.memory.over_safe_warning", nil), CocoSafeMaxHeapMB()]];
+    [sheet addPrimary:localize(@"coco.memory.over_safe_enable", nil) action:^{
+        setPrefBool(@"java.coco_allow_over_safe", YES);
+        [weakSelf refreshValues];
+    }];
+    [sheet addSecondary:localize(@"coco.mg.cancel", nil) action:nil];
     [self presentViewController:sheet animated:YES completion:nil];
 }
 
