@@ -677,10 +677,88 @@ void CocoReloadRootViewController(void) {
         self.didAppearOnce = YES;
         [self checkInstallation];
         [self runPreviewHooks];
+        [self checkForAppUpdate];
     }
     if (heapLoweredFrom > 0) {
         [self showHeapLoweredFrom:heapLoweredFrom];
     }
+}
+
+#pragma mark - App update notice
+
+// CocoLauncher: iOS cannot replace its own app, so tell the player when the Coco source has a newer
+// build (compared by CFBundleVersion: the shown version can stay the same between builds).
+- (void)checkForAppUpdate {
+    NSInteger currentBuild = [NSBundle.mainBundle.infoDictionary[@"CFBundleVersion"] integerValue];
+    if (currentBuild <= 0) {
+        return;
+    }
+    NSString *urlString = [NSString stringWithFormat:@"%@?t=%lld", COCO_IOS_SOURCE_URL, (long long)NSDate.date.timeIntervalSince1970];
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
+        cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:15];
+    __weak CocoHomeViewController *weakSelf = self;
+    [[NSURLSession.sharedSession dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (error || data.length == 0) {
+            NSLog(@"[CocoLauncher] Update check failed: %@", error.localizedDescription);
+            return;
+        }
+        id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+        NSArray *apps = [json isKindOfClass:NSDictionary.class] ? json[@"apps"] : nil;
+        NSDictionary *app = [apps isKindOfClass:NSArray.class] ? apps.firstObject : nil;
+        if (![app isKindOfClass:NSDictionary.class]) {
+            return;
+        }
+        NSArray *versions = [app[@"versions"] isKindOfClass:NSArray.class] ? app[@"versions"] : nil;
+        NSDictionary *latest = [versions.firstObject isKindOfClass:NSDictionary.class] ? versions.firstObject : app;
+        NSInteger latestBuild = [latest[@"buildVersion"] integerValue];
+        NSString *latestVersion = [latest[@"version"] description] ?: @"";
+        NSString *downloadURL = [latest[@"downloadURL"] isKindOfClass:NSString.class] ? latest[@"downloadURL"] : nil;
+        if (latestBuild <= currentBuild) {
+            NSLog(@"[CocoLauncher] Update check: build %ld is the newest (source build %ld)", (long)currentBuild, (long)latestBuild);
+            return;
+        }
+        NSLog(@"[CocoLauncher] Update available: build %ld -> %@ (build %ld)", (long)currentBuild, latestVersion, (long)latestBuild);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf showAppUpdate:latestVersion build:latestBuild downloadURL:downloadURL attempt:0];
+        });
+    }] resume];
+}
+
+- (void)showAppUpdate:(NSString *)version build:(NSInteger)build downloadURL:(NSString *)downloadURL attempt:(int)attempt {
+    if (self.presentedViewController || self.view.window == nil) {
+        // Another sheet is open or the game is starting: try again a little later (up to ~1 minute)
+        if (attempt < 30) {
+            __weak CocoHomeViewController *weakSelf = self;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                [weakSelf showAppUpdate:version build:build downloadURL:downloadURL attempt:attempt + 1];
+            });
+        }
+        return;
+    }
+    NSString *current = NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"] ?: @"";
+    NSString *currentBuild = NSBundle.mainBundle.infoDictionary[@"CFBundleVersion"] ?: @"";
+    NSString *message = [NSString stringWithFormat:localize(@"coco.update.message", nil),
+        version, (long)build, current, currentBuild];
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.update.title", nil) message:message];
+    [sheet addPrimary:localize(@"coco.update.sidestore", nil) action:^{
+        NSString *encoded = [downloadURL stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.alphanumericCharacterSet];
+        NSURL *page = [NSURL URLWithString:COCO_IOS_DOWNLOAD_PAGE];
+        if (encoded.length == 0) {
+            [UIApplication.sharedApplication openURL:page options:@{} completionHandler:nil];
+            return;
+        }
+        NSURL *sideStore = [NSURL URLWithString:[@"sidestore://install?url=" stringByAppendingString:encoded]];
+        [UIApplication.sharedApplication openURL:sideStore options:@{} completionHandler:^(BOOL success) {
+            if (!success) {
+                [UIApplication.sharedApplication openURL:page options:@{} completionHandler:nil];
+            }
+        }];
+    }];
+    [sheet addSecondary:localize(@"coco.update.page", nil) action:^{
+        [UIApplication.sharedApplication openURL:[NSURL URLWithString:COCO_IOS_DOWNLOAD_PAGE] options:@{} completionHandler:nil];
+    }];
+    [sheet addSecondary:localize(@"coco.update.later", nil) action:nil];
+    [self presentViewController:sheet animated:YES completion:nil];
 }
 
 - (void)showHeapLoweredFrom:(int)oldMB {

@@ -96,6 +96,7 @@ for rel in api(f"repos/{REPO}/releases?per_page=50"):
     notes = (rel.get("body") or "").strip() or f"CocoLauncher {info['version']}"
     versions.append({
         "version": info["version"],
+        "buildVersion": str(info.get("buildVersion", "1")),
         "date": rel["published_at"],
         "localizedDescription": notes[:3000],
         "downloadURL": ipa["browser_download_url"],
@@ -135,6 +136,7 @@ if versions:
         },
         # Older AltStore/SideStore versions read these fields
         "version": latest["version"],
+        "buildVersion": latest["buildVersion"],
         "versionDate": latest["date"],
         "versionDescription": latest["localizedDescription"],
         "downloadURL": latest["downloadURL"],

@@ -426,3 +426,8 @@
 "coco.mg.fsr1.2" = "Chất lượng";
 "coco.mg.fsr1.3" = "Cân bằng";
 "coco.mg.fsr1.4" = "Hiệu năng";
+"coco.update.title" = "Có bản CocoLauncher mới";
+"coco.update.message" = "Đã có bản %@ (build %ld), máy bạn đang dùng %@ (build %@). iOS không cho app tự cài đè: cài bằng SideStore thì bấm Cập nhật bằng SideStore; cài bằng iloader/ESign thì mở trang tải IPA rồi cài đè. Dữ liệu, thế giới và tài khoản giữ nguyên.";
+"coco.update.sidestore" = "Cập nhật bằng SideStore";
+"coco.update.page" = "Mở trang tải IPA";
+"coco.update.later" = "Để sau";

@@ -474,3 +474,8 @@
 "coco.mg.fsr1.2" = "Quality";
 "coco.mg.fsr1.3" = "Balanced";
 "coco.mg.fsr1.4" = "Performance";
+"coco.update.title" = "New CocoLauncher available";
+"coco.update.message" = "Version %@ (build %ld) is out, you have %@ (build %@). iOS cannot update the app by itself: installed with SideStore, tap Update with SideStore; installed with iloader/ESign, open the IPA page and install over it. Data, worlds and accounts are kept.";
+"coco.update.sidestore" = "Update with SideStore";
+"coco.update.page" = "Open the IPA page";
+"coco.update.later" = "Later";

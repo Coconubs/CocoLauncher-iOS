@@ -19,6 +19,8 @@
 
 // Help page shown in the "News" tab.
 #define COCO_HELP_URL           @"https://coconubs.github.io/CocoLauncher-iOS/huong-dan.html"
+#define COCO_IOS_SOURCE_URL     @"https://coconubs.github.io/CocoLauncher-iOS/source.json"
+#define COCO_IOS_DOWNLOAD_PAGE  @"https://coconubs.github.io/CocoLauncher-iOS/"
 
 // Coco home screen (same look as CocoLauncher Android).
 #define COCO_MINECRAFT_VERSION  @"1.21.1"

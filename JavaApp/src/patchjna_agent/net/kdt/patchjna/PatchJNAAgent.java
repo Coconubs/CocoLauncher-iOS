@@ -28,5 +28,7 @@ public class PatchJNAAgent implements ClassFileTransformer {
     public static void premain(String args, Instrumentation instrumentation) {
         System.out.println("PatchJNAAgent: premain called");
         instrumentation.addTransformer(new PatchJNAAgent());
+        // CocoLauncher: Path.toRealPath() in the iOS sandbox (Cobblemon Showdown), see CocoIosFix
+        CocoIosFix.apply(instrumentation);
     }
 }
