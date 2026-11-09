@@ -246,7 +246,8 @@ void init_setupMultiDir() {
 // and the in-game Menu). Copied again when the bundled layout version goes up;
 // made the default once, unless the player picked another layout.
 // v3: menu-only "Cuộn ▲/▼" (list scrolling in menus), V (LumyMon dismount), ◁ ▷ fixed (GLFW +1 = previous slot).
-#define COCO_CONTROLS_VERSION 3
+// v4: players still on Amethyst's default.json (no Coco buttons at all) are moved to the Coco layout once.
+#define COCO_CONTROLS_VERSION 4
 void init_setupCocoControls() {
     NSString *bundled = [NSBundle.mainBundle pathForResource:@"coco_controls" ofType:@"json" inDirectory:@"coco"];
     if (bundled == nil) {
@@ -303,7 +304,21 @@ void init_setupCocoControls() {
             return;
         }
     }
-    if (installed == 0) {
+    if (installed < 4) {
+        // the Coco profile can carry its own layout (set from the in-game menu); default.json there hides the Coco buttons too
+        PLProfiles *profiles = PLProfiles.current;
+        NSMutableDictionary *list = [NSMutableDictionary dictionaryWithDictionary:(profiles.profiles ?: @{})];
+        NSDictionary *coco = list[COCO_PROFILE_NAME];
+        if ([coco[@"defaultTouchCtrl"] isEqual:@"default.json"]) {
+            NSMutableDictionary *edited = [coco mutableCopy];
+            edited[@"defaultTouchCtrl"] = @"coco_controls.json";
+            list[COCO_PROFILE_NAME] = edited;
+            profiles.profileDict[@"profiles"] = (id)list;
+            [profiles save];
+            [PLProfiles updateCurrent];
+        }
+    }
+    if (installed < 4) {
         NSString *current = getPrefObject(@"control.default_ctrl");
         if (current.length == 0 || [current isEqualToString:@"default.json"]) {
             setPrefObject(@"control.default_ctrl", @"coco_controls.json");

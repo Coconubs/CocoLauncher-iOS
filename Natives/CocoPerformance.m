@@ -105,8 +105,8 @@ BOOL CocoPresetMaxFramerate(NSString *preset) {
 NSDictionary<NSString *, NSString *> *CocoPresetGameOptions(NSString *preset) {
     if ([preset isEqualToString:COCO_PRESET_LOW]) {
         return @{
-            // 45 keeps A15/A16 cool enough to hold 40-45 FPS instead of throttling
-            @"maxFps": @"45",
+            // 9/11 (owner): 60 FPS with VSync on every preset
+            @"maxFps": @"60",
             @"renderDistance": @"4",
             @"simulationDistance": @"5",
             @"graphicsMode": @"0",
@@ -117,7 +117,7 @@ NSDictionary<NSString *, NSString *> *CocoPresetGameOptions(NSString *preset) {
             @"biomeBlendRadius": @"0",
             @"mipmapLevels": @"0",
             @"entityDistanceScaling": @"0.5",
-            @"enableVsync": @"false"
+            @"enableVsync": @"true"
         };
     } else if ([preset isEqualToString:COCO_PRESET_BALANCED]) {
         return @{
@@ -132,10 +132,10 @@ NSDictionary<NSString *, NSString *> *CocoPresetGameOptions(NSString *preset) {
             @"biomeBlendRadius": @"1",
             @"mipmapLevels": @"0",
             @"entityDistanceScaling": @"0.75",
-            @"enableVsync": @"false"
+            @"enableVsync": @"true"
         };
     } else if ([preset isEqualToString:COCO_PRESET_HIGH]) {
-        int maxFps = UIScreen.mainScreen.maximumFramesPerSecond > 60 ? 120 : 60;
+        int maxFps = 60;
         return @{
             @"maxFps": [NSString stringWithFormat:@"%d", maxFps],
             @"renderDistance": @"10",
@@ -148,7 +148,7 @@ NSDictionary<NSString *, NSString *> *CocoPresetGameOptions(NSString *preset) {
             @"biomeBlendRadius": @"2",
             @"mipmapLevels": @"2",
             @"entityDistanceScaling": @"1.0",
-            @"enableVsync": @"false"
+            @"enableVsync": @"true"
         };
     }
     return @{};
@@ -212,6 +212,12 @@ void CocoMigrateSettings(void) {
         setPrefBool(@"internal.coco_pending_sodium_extra", YES);
         setPrefBool(@"internal.coco_pending_dynamic_fps", YES);
         setPrefBool(@"internal.coco_pending_moreculling", YES);
+    }
+    // Version 9 (9/11, owner): GUI scale 2, VSync on, max 60 FPS; Sodium Extra weather off and the FPS counter
+    // in the top right corner. Written once each, the player can change them back in the game.
+    if (version < 9) {
+        setPrefBool(@"internal.coco_pending_v9_options", YES);
+        setPrefBool(@"internal.coco_pending_v9_sodium_extra", YES);
     }
     // Version 7: no vibration on button taps, View Bobbing off (once)
     if (version < 7) {

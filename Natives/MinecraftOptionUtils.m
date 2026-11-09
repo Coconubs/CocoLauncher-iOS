@@ -44,6 +44,15 @@
         [options cocoApplySodiumThreads:CocoPresetChunkThreads(pending)];
         setPrefObject(@"internal.coco_pending_preset", @"");
     }
+    // CocoLauncher settings v9: GUI scale 2, VSync, 60 FPS once (after the preset so these win). Only once the pack
+    // has put options.txt in place: a file written from nothing would stop the pack's own options from being seeded.
+    if (getPrefBool(@"internal.coco_pending_v9_options") && [NSFileManager.defaultManager fileExistsAtPath:options.optionsPath]) {
+        [options setKey:@"guiScale" value:@"2"];
+        [options setKey:@"enableVsync" value:@"true"];
+        [options setKey:@"maxFps" value:@"60"];
+        setPrefBool(@"internal.coco_pending_v9_options", NO);
+        NSLog(@"[CocoLauncher] options.txt: guiScale 2, VSync on, maxFps 60");
+    }
     [options save];
 }
 
@@ -110,6 +119,30 @@ static int CocoSetExisting(NSMutableDictionary *json, NSString *section, NSArray
             if ([self cocoWriteJSON:json to:path]) {
                 setPrefBool(@"internal.coco_pending_sodium_extra", NO);
                 NSLog(@"[CocoLauncher] Sodium Extra: %d effects turned off", n);
+            }
+        }
+    }
+    // Settings v9: Sodium Extra weather (rain/snow) off, FPS counter in the top right corner. The file may not exist
+    // yet on a new install; Sodium Extra fills in every missing value when it loads a partial file.
+    if (getPrefBool(@"internal.coco_pending_v9_sodium_extra")) {
+        NSString *path = [self cocoConfigPath:@"sodium-extra-options.json"];
+        NSMutableDictionary *json = [self cocoReadJSON:path];
+        if (json == nil && ![NSFileManager.defaultManager fileExistsAtPath:path]) {
+            json = [NSMutableDictionary new];
+            [NSFileManager.defaultManager createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
+        }
+        if (json) {
+            for (NSString *section in @[@"detail_settings", @"extra_settings"]) {
+                if (![json[section] isKindOfClass:NSMutableDictionary.class]) {
+                    json[section] = [NSMutableDictionary new];
+                }
+            }
+            json[@"detail_settings"][@"rain_snow"] = @NO;
+            json[@"extra_settings"][@"show_fps"] = @YES;
+            json[@"extra_settings"][@"overlay_corner"] = @"TOP_RIGHT";
+            if ([self cocoWriteJSON:json to:path]) {
+                setPrefBool(@"internal.coco_pending_v9_sodium_extra", NO);
+                NSLog(@"[CocoLauncher] Sodium Extra: weather off, FPS top right");
             }
         }
     }
