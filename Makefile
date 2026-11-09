@@ -303,7 +303,7 @@ jre: native
 	mkdir -p $(SOURCEDIR)/depends
 	cd $(SOURCEDIR)/depends; \
 	if [ ! -f "java-21-openjdk/release" ]; then \
-		curl -fSL --retry 3 -o '$(JRE21_ARCHIVE)' '$(JRE_MIRROR)/$(JRE21_ARCHIVE)'; \
+		curl -fSL --retry 8 --retry-delay 10 --retry-all-errors -o '$(JRE21_ARCHIVE)' '$(JRE_MIRROR)/$(JRE21_ARCHIVE)'; \
 		echo '$(JRE21_SHA256)  $(JRE21_ARCHIVE)' | shasum -a 256 -c -; \
 		mkdir -p java-21-openjdk; \
 		tar -xf '$(JRE21_ARCHIVE)' -C java-21-openjdk; \
