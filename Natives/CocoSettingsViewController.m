@@ -390,6 +390,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [column addArrangedSubview:self.recordingHideButton];
     [column addArrangedSubview:[self noteLabel:localize(@"coco.settings.recording_hide_note", nil)]];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.folder", nil) action:@selector(openFolder)]];
+    [column addArrangedSubview:[self rowButton:localize(@"coco.settings.sidemods", nil) action:@selector(openSideMods)]];
+    [column addArrangedSubview:[self noteLabel:localize(@"coco.settings.sidemods_note", nil)]];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.send_log", nil) action:@selector(sendLog:)]];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.advanced", nil) action:@selector(openAdvanced)]];
     return column;
@@ -621,6 +623,10 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 
 - (void)openFolder {
     [CocoHomeViewController openGameFolderFrom:self];
+}
+
+- (void)openSideMods {
+    [CocoHomeViewController openSideModsFolderFrom:self];
 }
 
 - (void)sendLog:(UIView *)sender {

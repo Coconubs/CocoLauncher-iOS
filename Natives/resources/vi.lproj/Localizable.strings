@@ -370,6 +370,8 @@
 "coco.settings.fps_note" = "120 Hz mượt hơn trên màn ProMotion nhưng nóng và tốn pin hơn.";
 "coco.settings.controls" = "Chỉnh bố cục nút cảm ứng";
 "coco.settings.folder" = "Mở thư mục game";
+"coco.settings.sidemods" = "Mod riêng (SideMods)";
+"coco.settings.sidemods_note" = "Bỏ file .jar mod riêng của bạn vào thư mục này (app Tệp). Launcher không xoá, người khác không phải tải. Chỉ dùng mod client đúng bản Fabric 1.21.1; mod lỗi thì gỡ ra rồi bấm Chơi lại.";
 "coco.settings.send_log" = "Gửi log lỗi cho admin";
 "coco.settings.advanced" = "Cài đặt nâng cao (Amethyst)";
 "coco.settings.no_log" = "Chưa có log. Hãy bấm CHƠI một lần rồi gửi lại.";

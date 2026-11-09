@@ -418,6 +418,8 @@
 "coco.settings.fps_note" = "120 Hz is smoother on ProMotion screens but warmer and uses more battery.";
 "coco.settings.controls" = "Edit the touch layout";
 "coco.settings.folder" = "Open the game folder";
+"coco.settings.sidemods" = "Your own mods (SideMods)";
+"coco.settings.sidemods_note" = "Put your own mod .jar files in this folder (Files app). The launcher never removes them and nobody else has to download them. Client mods for Fabric 1.21.1 only; if one breaks the game, take it out and press Play again.";
 "coco.settings.send_log" = "Send the error log to the admins";
 "coco.settings.advanced" = "Advanced settings (Amethyst)";
 "coco.settings.no_log" = "No log yet. Press PLAY once, then send it.";

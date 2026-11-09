@@ -107,8 +107,19 @@ void CocoReloadRootViewController(void) {
         getPrefObject(@"general.game_directory"), COCO_GAME_DIR_NAME].stringByStandardizingPath;
 }
 
++ (NSString *)sideModsFolderPath {
+    return [[self gameFolderPath] stringByAppendingPathComponent:@"sidemods"];
+}
+
++ (void)openSideModsFolderFrom:(UIViewController *)viewController {
+    [self openFolder:[self sideModsFolderPath] from:viewController];
+}
+
 + (void)openGameFolderFrom:(UIViewController *)viewController {
-    NSString *path = [self gameFolderPath];
+    [self openFolder:[self gameFolderPath] from:viewController];
+}
+
++ (void)openFolder:(NSString *)path from:(UIViewController *)viewController {
     [NSFileManager.defaultManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
     NSString *escaped = [path stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet];
     NSURL *url = [NSURL URLWithString:[@"shareddocuments://" stringByAppendingString:escaped]];

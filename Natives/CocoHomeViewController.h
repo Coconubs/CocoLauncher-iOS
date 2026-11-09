@@ -12,6 +12,9 @@
 
 // Opens the Coco game folder in the Files app (falls back to showing the path)
 + (void)openGameFolderFrom:(UIViewController *)viewController;
+// CocoLauncher: sidemods/ in the game folder, the player's own mods (loaded with -Dfabric.addMods, never removed)
++ (NSString *)sideModsFolderPath;
++ (void)openSideModsFolderFrom:(UIViewController *)viewController;
 
 @end
 

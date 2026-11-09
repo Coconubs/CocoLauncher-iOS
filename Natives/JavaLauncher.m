@@ -292,6 +292,12 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     margv[++margc] = "-verbose:gc";
     margv[++margc] = [NSString stringWithFormat:@"-Djava.library.path=%@/Frameworks", NSBundle.mainBundle.bundlePath].UTF8String;
     margv[++margc] = [NSString stringWithFormat:@"-Duser.dir=%@", gameDir].UTF8String;
+    // CocoLauncher: sidemods/ = the player's own mods, loaded besides mods/ (the pack sync only cleans mods/), as on PC
+    if (gameDir.length > 0) {
+        NSString *sideMods = [gameDir stringByAppendingPathComponent:@"sidemods"];
+        [fm createDirectoryAtPath:sideMods withIntermediateDirectories:YES attributes:nil error:nil];
+        margv[++margc] = [NSString stringWithFormat:@"-Dfabric.addMods=%@", sideMods].UTF8String;
+    }
     margv[++margc] = [NSString stringWithFormat:@"-Duser.home=%s", getenv("AME_HOME")].UTF8String;
     margv[++margc] = [NSString stringWithFormat:@"-Duser.timezone=%@", NSTimeZone.localTimeZone.name].UTF8String;
     margv[++margc] = [NSString stringWithFormat:@"-DUIScreen.maximumFramesPerSecond=%d", (int)UIScreen.mainScreen.maximumFramesPerSecond].UTF8String;
