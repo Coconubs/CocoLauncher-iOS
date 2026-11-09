@@ -52,11 +52,9 @@ int CocoRecommendedHeapMB(void) {
     int deviceMB = CocoDeviceMemoryMB();
     int wanted;
     if (deviceMB >= 7000) {
-        wanted = 3072; // 8 GB and more
-    } else if (deviceMB >= 5000) {
-        wanted = 2560; // 6 GB
+        wanted = 4096; // 8 GB and more: smooth
     } else {
-        wanted = 2048; // 4 GB and less
+        wanted = COCO_SMOOTH_HEAP_MB; // smaller devices: as much as the limit allows
     }
     // Never more than what still fits under the process limit, rounded to 128 MB.
     int safe = CocoSafeMaxHeapMB() / 128 * 128;
@@ -153,8 +151,16 @@ void CocoMigrateSettings(void) {
     // CocoLauncher 1.0.0 set 3072/2560/2048 MB from the device RAM only. Without
     // the increased memory entitlement that is often more than iOS allows.
     int current = getPrefInt(@"java.allocated_memory");
-    if (current == 3072 || current == 2560 || current == 2048) {
+    if (version < 2 && (current == 3072 || current == 2560 || current == 2048)) {
         setPrefObject(@"java.allocated_memory", @(CocoRecommendedHeapMB()));
+    }
+    // Settings version 3: the pack needs at least 3.5 GB of Java heap.
+    if (version < 3 && getPrefInt(@"java.allocated_memory") < COCO_MIN_PLAY_HEAP_MB) {
+        setPrefObject(@"java.allocated_memory", @(CocoRecommendedHeapMB()));
+    }
+    // Version 3: on-screen mouse pointer on by default (tap = click at the pointer)
+    if (version < 3) {
+        setPrefBool(@"control.virtmouse_enable", YES);
     }
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }

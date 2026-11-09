@@ -256,6 +256,12 @@ static GameSurfaceView* pojavWindow;
     }
 
     [self.rootView addSubview:self.inputTextField];
+    // CocoLauncher: show what is being typed just above the on-screen keyboard,
+    // which otherwise covers Minecraft's chat line
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(cocoKeyboardWillChange:)
+        name:UIKeyboardWillChangeFrameNotification object:nil];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(cocoKeyboardWillChange:)
+        name:UIKeyboardWillHideNotification object:nil];
 
     [self performSelector:@selector(initCategory_LogView)];
 
@@ -819,6 +825,24 @@ static GameSurfaceView* pojavWindow;
 }
 
 #pragma mark - Input view stuff
+
+- (void)cocoKeyboardWillChange:(NSNotification *)notification {
+    CGFloat width = self.view.bounds.size.width;
+    CGRect hidden = CGRectMake(0, -32.0, width, 30.0);
+    if ([notification.name isEqualToString:UIKeyboardWillHideNotification]) {
+        self.inputTextField.frame = hidden;
+        return;
+    }
+    CGRect end = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    CGRect local = [self.rootView convertRect:end fromCoordinateSpace:UIScreen.mainScreen.coordinateSpace];
+    CGFloat height = self.view.bounds.size.height;
+    // Hardware keyboard (no on-screen keyboard covering the game): keep it hidden
+    if (local.size.height < 80 || local.origin.y >= height || local.origin.y < 40) {
+        self.inputTextField.frame = hidden;
+        return;
+    }
+    self.inputTextField.frame = CGRectMake(0, local.origin.y - 36.0, width, 34.0);
+}
 
 -(BOOL)textFieldShouldReturn:(UITextField *)textField {
     CallbackBridge_nativeSendKey(GLFW_KEY_ENTER, 0, 1, 0);

@@ -8,6 +8,7 @@
 #import "CocoInstall.h"
 #import "CocoConfig.h"
 #import "CocoHomeViewController.h"
+#import "CocoMemoryUnlock.h"
 #import "CocoPerformance.h"
 #import "CocoSettingsViewController.h"
 #import "CocoUI.h"
@@ -1029,6 +1030,13 @@ void CocoReloadRootViewController(void) {
     [self.view endEditing:YES];
     [NSUserDefaults.standardUserDefaults setObject:name forKey:@"CocoPlayerName"];
 
+    // The Coco pack needs at least 3.5 GB of Java heap (3.8-4 GB to play smoothly)
+    int heap = (int)getPrefInt(@"java.allocated_memory");
+    if (heap < COCO_MIN_PLAY_HEAP_MB) {
+        [self presentLowMemorySheet:heap];
+        return;
+    }
+
     if (![self selectCocoProfile]) {
         [self showError:localize(@"coco.home.error.profile", nil)];
         return;
@@ -1049,6 +1057,29 @@ void CocoReloadRootViewController(void) {
     // selected account is never swapped for another one.
     NSLog(@"[CocoHome] Play: %@", [CocoLaunchContext contextForAccountData:account.authData].logDescription);
     [self prepareAndDownload];
+}
+
+- (void)presentLowMemorySheet:(int)heap {
+    BOOL locked = CocoLacksMemoryEntitlement();
+    NSString *message = [NSString stringWithFormat:localize(locked ? @"coco.ram.min.message_locked" : @"coco.ram.min.message", nil),
+        heap, COCO_MIN_PLAY_HEAP_MB, COCO_SMOOTH_HEAP_MB, CocoSafeMaxHeapMB()];
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.ram.min.title", nil) message:message];
+    __weak CocoHomeViewController *weakSelf = self;
+    if (locked) {
+        [sheet addPrimary:localize(@"coco.ram.min.unlock", nil) action:^{
+            CocoHomeViewController *strongSelf = weakSelf;
+            if (strongSelf) CocoPresentMemoryUnlock(strongSelf);
+        }];
+        [sheet addSecondary:localize(@"coco.ram.min.settings", nil) action:^{
+            [weakSelf openSettings];
+        }];
+    } else {
+        [sheet addPrimary:localize(@"coco.ram.min.settings", nil) action:^{
+            [weakSelf openSettings];
+        }];
+    }
+    [sheet addSecondary:localize(@"coco.home.first.later", nil) action:nil];
+    [self presentViewController:sheet animated:YES completion:nil];
 }
 
 - (void)presentFirstDownloadForName:(NSString *)name {

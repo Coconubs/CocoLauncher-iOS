@@ -482,3 +482,8 @@
 "coco.install.reason.no_java" = "không tìm thấy Java 21 đi kèm app; hãy cài lại CocoLauncher";
 "coco.install.detail.pack_offline" = "không kiểm tra được bản mới, dùng gói đã cài";
 "coco.install.failed.message" = "Chưa chuẩn bị xong:\n%@\n\nFile đã tải và kiểm tra đúng được giữ lại; THỬ LẠI chỉ tải phần còn thiếu.";
+"coco.ram.min.title" = "Chưa đủ RAM cho Coco";
+"coco.ram.min.message" = "RAM cấp cho game đang là %1$d MB. Gói Coco cần tối thiểu %2$d MB (3,5 GB) mới cho chơi; chơi mượt nên đặt %3$d–4096 MB (3,8–4 GB). Vào Cài đặt › RAM để tăng (mức an toàn của máy: %4$d MB).";
+"coco.ram.min.message_locked" = "RAM cấp cho game đang là %1$d MB. Gói Coco cần tối thiểu %2$d MB (3,5 GB) mới cho chơi; chơi mượt nên đặt %3$d–4096 MB (3,8–4 GB). Bản cài này chưa mở khoá RAM nên iOS chỉ cho khoảng %4$d MB: bấm MỞ KHOÁ RAM, xong vào SideStore › Refresh rồi đặt lại RAM trong Cài đặt.";
+"coco.ram.min.unlock" = "MỞ KHOÁ RAM";
+"coco.ram.min.settings" = "Mở Cài đặt RAM";

@@ -530,3 +530,8 @@
 "coco.install.reason.no_java" = "the Java 21 runtime bundled with the app is missing; please reinstall CocoLauncher";
 "coco.install.detail.pack_offline" = "couldn't check for updates, using the installed pack";
 "coco.install.failed.message" = "Not ready yet:\n%@\n\nFiles already downloaded and verified are kept; RETRY only fetches what is missing.";
+"coco.ram.min.title" = "Not enough RAM for Coco";
+"coco.ram.min.message" = "The game is set to %1$d MB of RAM. The Coco pack needs at least %2$d MB (3.5 GB) to play; for smooth play use %3$d–4096 MB (3.8–4 GB). Raise it in Settings › RAM (safe maximum on this device: %4$d MB).";
+"coco.ram.min.message_locked" = "The game is set to %1$d MB of RAM. The Coco pack needs at least %2$d MB (3.5 GB) to play; for smooth play use %3$d–4096 MB (3.8–4 GB). This install has no increased memory limit, so iOS only allows about %4$d MB: tap UNLOCK RAM, then SideStore › Refresh, then set the RAM again in Settings.";
+"coco.ram.min.unlock" = "UNLOCK RAM";
+"coco.ram.min.settings" = "Open RAM settings";

@@ -11,7 +11,12 @@
 #define COCO_PRESET_CUSTOM   @"custom"
 
 // Bump when the defaults change in a way that should be re-applied once.
-#define COCO_SETTINGS_VERSION 2
+#define COCO_SETTINGS_VERSION 3
+
+// Java heap needed by the Coco pack: below the minimum CHOI is refused,
+// 3.8-4 GB plays smoothly.
+#define COCO_MIN_PLAY_HEAP_MB 3584
+#define COCO_SMOOTH_HEAP_MB 3840
 
 // Physical RAM of the device in MB.
 int CocoDeviceMemoryMB(void);
