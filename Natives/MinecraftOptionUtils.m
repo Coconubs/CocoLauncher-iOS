@@ -24,6 +24,12 @@
     [options setDefaultForKey:@"particles" value:@"1"];
     [options setDefaultForKey:@"renderDistance" value:@"2"];
     [options setDefaultForKey:@"simulationDistance" value:@"5"];
+    [options setDefaultForKey:@"bobView" value:@"false"];
+    // CocoLauncher: View Bobbing off once (players can turn it back on in the game)
+    if (getPrefBool(@"internal.coco_pending_bobview_off")) {
+        [options setKey:@"bobView" value:@"false"];
+        setPrefBool(@"internal.coco_pending_bobview_off", NO);
+    }
     // CocoLauncher: write the Low/Balanced/High preset once after it is picked,
     // so later changes made in the game's own video settings are kept.
     NSString *pending = getPrefObject(@"internal.coco_pending_preset");

@@ -197,6 +197,11 @@ void CocoMigrateSettings(void) {
             CocoApplyPreset(COCO_PRESET_LOW);
         }
     }
+    // Version 7: no vibration on button taps, View Bobbing off (once)
+    if (version < 7) {
+        setPrefBool(@"control.disable_haptics", YES);
+        setPrefBool(@"internal.coco_pending_bobview_off", YES);
+    }
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }
 

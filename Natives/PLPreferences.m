@@ -60,7 +60,7 @@
             @"recording_hide": @NO, // CocoLauncher: buttons visible in screenshots/streams
             @"gesture_mouse": @YES,
             @"gesture_hotbar": @YES,
-            @"disable_haptics": @NO,
+            @"disable_haptics": @YES, // CocoLauncher: no vibration on button taps by default
             @"slideable_hotbar": @NO,
             @"press_duration": @(400),
             @"button_scale": @(100),
@@ -95,7 +95,9 @@
             @"latest_version": [NSDictionary new],
             // CocoLauncher: preset whose Minecraft options are written on the next launch
             @"coco_pending_preset": cocoPreset,
-            @"coco_settings_version": @0
+            @"coco_settings_version": @0,
+            // CocoLauncher: write bobView:false into options.txt on the next launch
+            @"coco_pending_bobview_off": @YES
         }.mutableCopy
     }.mutableCopy;
 
