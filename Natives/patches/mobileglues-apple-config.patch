@@ -1,3 +1,19 @@
+diff --git a/MobileGlues-cpp/CMakeLists.txt b/MobileGlues-cpp/CMakeLists.txt
+index 0426186..36ba58e 100644
+--- a/MobileGlues-cpp/CMakeLists.txt
++++ b/MobileGlues-cpp/CMakeLists.txt
+@@ -149,7 +149,10 @@ if (NOT MSVC)
+     # calls bind to changes. On the target, not in the AppleClang-guarded block
+     # above -- that block's condition has never been true (dangling NOT MATCHES),
+     # which is also why --gc-sections never made it into the link.
+-    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,-Bsymbolic-functions)
++    # CocoLauncher: ld64 (Apple) has no -Bsymbolic-functions
++    if (NOT APPLE)
++        target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,-Bsymbolic-functions)
++    endif()
+ endif()
+ 
+ if(MACOS)
 diff --git a/MobileGlues-cpp/config/settings.cpp b/MobileGlues-cpp/config/settings.cpp
 index 43d5dd0..60c7633 100644
 --- a/MobileGlues-cpp/config/settings.cpp
