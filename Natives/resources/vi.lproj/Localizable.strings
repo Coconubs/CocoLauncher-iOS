@@ -438,7 +438,7 @@
 "coco.memory.mf_dynamic" = "Nạp model khi cần (tiết kiệm RAM): %@";
 "coco.unlock.row" = "Mở khoá RAM (bật Increased Memory Limit)";
 "coco.unlock.title" = "Mở khoá RAM";
-"coco.unlock.message" = "Coco cần mở khoá RAM (tối thiểu 3,5 GB) mới chơi được. Đăng nhập ĐÚNG Apple ID đã dùng để cài CocoLauncher (SideStore). CocoLauncher bật quyền Increased Memory Limit cho app này trên tài khoản đó, rồi bạn làm mới/cài lại CocoLauncher trong SideStore. Mật khẩu chỉ gửi tới Apple, không lưu lại.\n\nDựa trên ý tưởng GetMoreRam (hugeBlack) và thư viện isideload (nab138, MIT).";
+"coco.unlock.message" = "Coco cần mở khoá RAM (đủ RAM cho gói Coco) mới chơi được. Đăng nhập ĐÚNG Apple ID đã dùng để cài CocoLauncher (SideStore). CocoLauncher bật quyền Increased Memory Limit cho app này trên tài khoản đó, rồi bạn làm mới/cài lại CocoLauncher trong SideStore. Mật khẩu chỉ gửi tới Apple, không lưu lại.\n\nDựa trên ý tưởng GetMoreRam (hugeBlack) và thư viện isideload (nab138, MIT).";
 "coco.unlock.appleid" = "Apple ID (email)";
 "coco.unlock.password" = "Mật khẩu Apple ID";
 "coco.unlock.start" = "Mở khoá";
@@ -458,7 +458,7 @@
 "coco.unlock.done.message" = "Bước cuối, chọn 1 trong 2 cách để SideStore ký lại CocoLauncher (dữ liệu và game giữ nguyên; LocalDevVPN phải đang bật):
 1. CÀI LẠI QUA SIDESTORE: mở SideStore và cài đè ngay.
 2. REFRESH TRONG SIDESTORE: mở SideStore › My Apps › bấm Refresh ở CocoLauncher.
-Xong mở lại CocoLauncher: RAM chọn được 3,5–4 GB (dòng đầu log ghi increased-memory-limit: YES). Cài bằng iloader thì cài lại IPA bằng iloader.";
+Xong mở lại CocoLauncher: RAM chọn được đủ mức Coco cần (dòng đầu log ghi increased-memory-limit: YES). Cài bằng iloader thì cài lại IPA bằng iloader.";
 "coco.unlock.refresh_sidestore" = "REFRESH TRONG SIDESTORE";
 "coco.unlock.open_sidestore" = "CÀI LẠI QUA SIDESTORE";
 "coco.unlock.error.title" = "Chưa mở khoá được";
@@ -487,8 +487,8 @@ Xong mở lại CocoLauncher: RAM chọn được 3,5–4 GB (dòng đầu log g
 "coco.install.detail.pack_offline" = "không kiểm tra được bản mới, dùng gói đã cài";
 "coco.install.failed.message" = "Chưa chuẩn bị xong:\n%@\n\nFile đã tải và kiểm tra đúng được giữ lại; THỬ LẠI chỉ tải phần còn thiếu.";
 "coco.ram.min.title" = "Chưa đủ RAM cho Coco";
-"coco.ram.min.message" = "RAM cấp cho game đang là %1$d MB. Gói Coco cần tối thiểu %2$d MB (3,5 GB) mới cho chơi; chơi mượt nên đặt %3$d–4096 MB (3,8–4 GB). Vào Cài đặt › RAM để tăng (mức an toàn của máy: %4$d MB).";
-"coco.ram.min.message_locked" = "RAM cấp cho game đang là %1$d MB. Gói Coco cần tối thiểu %2$d MB (3,5 GB) mới cho chơi; chơi mượt nên đặt %3$d–4096 MB (3,8–4 GB). Bản cài này chưa mở khoá RAM nên iOS chỉ cho khoảng %4$d MB: bấm MỞ KHOÁ RAM, xong vào SideStore › Refresh rồi đặt lại RAM trong Cài đặt.";
+"coco.ram.min.message" = "RAM cấp cho game đang là %1$d MB. Trên máy này gói Coco cần tối thiểu %2$d MB mới cho chơi; chơi mượt nên đặt từ %3$d MB. Vào Cài đặt › RAM để tăng (mức an toàn của máy: %4$d MB).";
+"coco.ram.min.message_locked" = "RAM cấp cho game đang là %1$d MB. Trên máy này gói Coco cần tối thiểu %2$d MB mới cho chơi; chơi mượt nên đặt từ %3$d MB. Bản cài này chưa mở khoá RAM nên iOS chỉ cho khoảng %4$d MB: bấm MỞ KHOÁ RAM, xong cài lại hoặc Refresh trong SideStore rồi đặt lại RAM trong Cài đặt.";
 "coco.ram.min.unlock" = "MỞ KHOÁ RAM";
 "coco.ram.min.settings" = "Mở Cài đặt RAM";
 "coco.settings.recording_hide" = "Nút khi chụp/quay màn hình: %@";

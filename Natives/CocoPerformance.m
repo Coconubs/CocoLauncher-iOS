@@ -50,13 +50,21 @@ int CocoSafeMaxHeapMB(void) {
     return MAX(limit - CocoNativeOverheadMB(), 512);
 }
 
+int CocoMinPlayHeapMB(void) {
+    return CocoDeviceMemoryMB() >= 7000 ? 3584 : 2560;
+}
+
+int CocoSmoothHeapMB(void) {
+    return CocoDeviceMemoryMB() >= 7000 ? 3840 : 2560;
+}
+
 int CocoRecommendedHeapMB(void) {
     int deviceMB = CocoDeviceMemoryMB();
     int wanted;
     if (deviceMB >= 7000) {
         wanted = 4096; // 8 GB and more: smooth
     } else {
-        wanted = COCO_SMOOTH_HEAP_MB; // smaller devices: as much as the limit allows
+        wanted = 2560; // 6 GB: 2.5 GB heap leaves room for graphics
     }
     // Never more than what still fits under the process limit, rounded to 128 MB.
     int safe = CocoSafeMaxHeapMB() / 128 * 128;
@@ -64,7 +72,8 @@ int CocoRecommendedHeapMB(void) {
 }
 
 BOOL CocoIsLowEndDevice(void) {
-    return CocoDeviceMemoryMB() < 5000 || NSProcessInfo.processInfo.processorCount <= 4;
+    // 6 GB devices (A15/A16) start on Low too: 40-60 FPS needs it with ~125 mods
+    return CocoDeviceMemoryMB() < 7000 || NSProcessInfo.processInfo.processorCount <= 4;
 }
 
 NSString *CocoDefaultPreset(void) {
@@ -77,6 +86,11 @@ int CocoPresetResolution(NSString *preset) {
     return 75;
 }
 
+int CocoPresetChunkThreads(NSString *preset) {
+    // Low: 2 chunk builder threads leave CPU time for the render thread on 6-core phones
+    return [preset isEqualToString:COCO_PRESET_LOW] ? 2 : 0;
+}
+
 BOOL CocoPresetMaxFramerate(NSString *preset) {
     // Only High asks ProMotion screens for 120 Hz; the others stay at 60.
     return [preset isEqualToString:COCO_PRESET_HIGH];
@@ -85,7 +99,8 @@ BOOL CocoPresetMaxFramerate(NSString *preset) {
 NSDictionary<NSString *, NSString *> *CocoPresetGameOptions(NSString *preset) {
     if ([preset isEqualToString:COCO_PRESET_LOW]) {
         return @{
-            @"maxFps": @"30",
+            // 45 keeps A15/A16 cool enough to hold 40-45 FPS instead of throttling
+            @"maxFps": @"45",
             @"renderDistance": @"4",
             @"simulationDistance": @"5",
             @"graphicsMode": @"0",
@@ -174,6 +189,13 @@ void CocoMigrateSettings(void) {
     // Version 5: on-screen buttons shown in screenshots and recordings by default
     if (version < 5) {
         setPrefBool(@"control.recording_hide", NO);
+    }
+    // Version 6: 6 GB devices get a 2.5 GB heap and the Low preset once
+    if (version < 6 && CocoDeviceMemoryMB() < 7000) {
+        setPrefObject(@"java.allocated_memory", @(CocoRecommendedHeapMB()));
+        if (![getPrefObject(@"video.quality_preset") isEqualToString:COCO_PRESET_LOW]) {
+            CocoApplyPreset(COCO_PRESET_LOW);
+        }
     }
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }

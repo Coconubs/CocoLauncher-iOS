@@ -32,9 +32,29 @@
             [options setKey:key value:values[key]];
         }
         NSLog(@"[CocoLauncher] Applied %@ preset to options.txt (%lu values)", pending, (unsigned long)values.count);
+        [self cocoApplySodiumThreads:CocoPresetChunkThreads(pending)];
         setPrefObject(@"internal.coco_pending_preset", @"");
     }
     [options save];
+}
+
+// Sodium's own file: only an existing, readable config is changed (Sodium writes
+// the full file on its first start), and only the chunk builder thread count.
+- (void)cocoApplySodiumThreads:(int)threads {
+    NSString *path = [[self.optionsPath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"config/sodium-options.json"];
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    if (data == nil) {
+        return;
+    }
+    NSMutableDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+    if (![json isKindOfClass:NSMutableDictionary.class] || ![json[@"performance"] isKindOfClass:NSMutableDictionary.class]) {
+        return;
+    }
+    json[@"performance"][@"chunk_builder_threads"] = @(threads);
+    NSData *out = [NSJSONSerialization dataWithJSONObject:json options:NSJSONWritingPrettyPrinted error:nil];
+    if (out != nil && [out writeToFile:path atomically:YES]) {
+        NSLog(@"[CocoLauncher] Sodium chunk builder threads = %d", threads);
+    }
 }
 
 + (instancetype)sharedInstance {

@@ -276,6 +276,18 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     }
     margv[++margc] = "-Xms128M";
     margv[++margc] = [NSString stringWithFormat:@"-Xmx%dM", allocmem].UTF8String;
+    // CocoLauncher: keep memory outside the Java heap in check (iOS kills the app
+    // at the process limit). Direct buffers (Netty while joining a server) would
+    // otherwise be allowed to grow up to -Xmx.
+    BOOL cocoSmallDevice = CocoDeviceMemoryMB() < 7000;
+    margv[++margc] = cocoSmallDevice ? "-XX:MaxDirectMemorySize=384M" : "-XX:MaxDirectMemorySize=512M";
+    margv[++margc] = "-XX:+UseStringDeduplication";
+    if (cocoSmallDevice) {
+        margv[++margc] = "-XX:ReservedCodeCacheSize=192m";
+        margv[++margc] = "-XX:CICompilerCount=2";
+    }
+    // GC lines in latestlog.txt show how full the heap gets before iOS steps in
+    margv[++margc] = "-verbose:gc";
     margv[++margc] = [NSString stringWithFormat:@"-Djava.library.path=%@/Frameworks", NSBundle.mainBundle.bundlePath].UTF8String;
     margv[++margc] = [NSString stringWithFormat:@"-Duser.dir=%@", gameDir].UTF8String;
     margv[++margc] = [NSString stringWithFormat:@"-Duser.home=%s", getenv("AME_HOME")].UTF8String;

@@ -11,12 +11,17 @@
 #define COCO_PRESET_CUSTOM   @"custom"
 
 // Bump when the defaults change in a way that should be re-applied once.
-#define COCO_SETTINGS_VERSION 5
+#define COCO_SETTINGS_VERSION 6
 
-// Java heap needed by the Coco pack: below the minimum CHOI is refused,
-// 3.8-4 GB plays smoothly.
-#define COCO_MIN_PLAY_HEAP_MB 3584
-#define COCO_SMOOTH_HEAP_MB 3840
+// Java heap needed by the Coco pack: below the minimum CHOI is refused.
+// 8 GB devices: 3.5 GB minimum, 3.8-4 GB smooth. 6 GB devices: 2.5 GB.
+int CocoMinPlayHeapMB(void);
+int CocoSmoothHeapMB(void);
+#define COCO_MIN_PLAY_HEAP_MB (CocoMinPlayHeapMB())
+#define COCO_SMOOTH_HEAP_MB (CocoSmoothHeapMB())
+
+// Sodium chunk builder threads for a preset (0 = Sodium decides)
+int CocoPresetChunkThreads(NSString *preset);
 
 // Physical RAM of the device in MB.
 int CocoDeviceMemoryMB(void);

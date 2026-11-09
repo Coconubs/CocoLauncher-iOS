@@ -486,7 +486,7 @@
 "coco.memory.mf_dynamic" = "Load models on demand (saves RAM): %@";
 "coco.unlock.row" = "Unlock RAM (enable Increased Memory Limit)";
 "coco.unlock.title" = "Unlock RAM";
-"coco.unlock.message" = "Coco needs the RAM unlock (at least 3.5 GB) to play. Sign in with the SAME Apple ID that installed CocoLauncher (SideStore). CocoLauncher enables the Increased Memory Limit capability for this app on that account, then you refresh/reinstall CocoLauncher in SideStore. The password is only sent to Apple and is not saved.\n\nBased on the idea of GetMoreRam (hugeBlack) and the isideload library (nab138, MIT).";
+"coco.unlock.message" = "Coco needs the RAM unlock (enough RAM for the Coco pack) to play. Sign in with the SAME Apple ID that installed CocoLauncher (SideStore). CocoLauncher enables the Increased Memory Limit capability for this app on that account, then you refresh/reinstall CocoLauncher in SideStore. The password is only sent to Apple and is not saved.\n\nBased on the idea of GetMoreRam (hugeBlack) and the isideload library (nab138, MIT).";
 "coco.unlock.appleid" = "Apple ID (email)";
 "coco.unlock.password" = "Apple ID password";
 "coco.unlock.start" = "Unlock";
@@ -506,7 +506,7 @@
 "coco.unlock.done.message" = "Last step, pick one of two ways for SideStore to sign CocoLauncher again (app data and game are kept; LocalDevVPN must be on):
 1. REINSTALL WITH SIDESTORE: opens SideStore and installs over the current copy.
 2. REFRESH IN SIDESTORE: open SideStore › My Apps › tap Refresh on CocoLauncher.
-Then open CocoLauncher again: RAM can be set to 3.5-4 GB (the first log line says increased-memory-limit: YES). If you installed with iloader, reinstall the IPA with iloader.";
+Then open CocoLauncher again: RAM can be set high enough for Coco (the first log line says increased-memory-limit: YES). If you installed with iloader, reinstall the IPA with iloader.";
 "coco.unlock.refresh_sidestore" = "REFRESH IN SIDESTORE";
 "coco.unlock.open_sidestore" = "REINSTALL WITH SIDESTORE";
 "coco.unlock.error.title" = "Could not unlock";
@@ -535,8 +535,8 @@ Then open CocoLauncher again: RAM can be set to 3.5-4 GB (the first log line say
 "coco.install.detail.pack_offline" = "couldn't check for updates, using the installed pack";
 "coco.install.failed.message" = "Not ready yet:\n%@\n\nFiles already downloaded and verified are kept; RETRY only fetches what is missing.";
 "coco.ram.min.title" = "Not enough RAM for Coco";
-"coco.ram.min.message" = "The game is set to %1$d MB of RAM. The Coco pack needs at least %2$d MB (3.5 GB) to play; for smooth play use %3$d–4096 MB (3.8–4 GB). Raise it in Settings › RAM (safe maximum on this device: %4$d MB).";
-"coco.ram.min.message_locked" = "The game is set to %1$d MB of RAM. The Coco pack needs at least %2$d MB (3.5 GB) to play; for smooth play use %3$d–4096 MB (3.8–4 GB). This install has no increased memory limit, so iOS only allows about %4$d MB: tap UNLOCK RAM, then SideStore › Refresh, then set the RAM again in Settings.";
+"coco.ram.min.message" = "The game is set to %1$d MB of RAM. On this device the Coco pack needs at least %2$d MB to play; for smooth play use %3$d MB or more. Raise it in Settings › RAM (safe maximum on this device: %4$d MB).";
+"coco.ram.min.message_locked" = "The game is set to %1$d MB of RAM. On this device the Coco pack needs at least %2$d MB to play; for smooth play use %3$d MB or more. This install has no increased memory limit, so iOS only allows about %4$d MB: tap UNLOCK RAM, then reinstall or Refresh in SideStore, then set the RAM again in Settings.";
 "coco.ram.min.unlock" = "UNLOCK RAM";
 "coco.ram.min.settings" = "Open RAM settings";
 "coco.settings.recording_hide" = "Buttons in screenshots/recordings: %@";
