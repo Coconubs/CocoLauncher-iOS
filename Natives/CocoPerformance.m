@@ -171,6 +171,10 @@ void CocoMigrateSettings(void) {
             setPrefObject(@"java.allocated_memory", @(CocoRecommendedHeapMB()));
         }
     }
+    // Version 5: on-screen buttons shown in screenshots and recordings by default
+    if (version < 5) {
+        setPrefBool(@"control.recording_hide", NO);
+    }
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }
 
