@@ -25,7 +25,8 @@ static UIView *menuSwipeView;
     [menuSwipeView addSubview:menuSwipeLineView];
     [self.rootView addSubview:menuSwipeView];
 
-    self.menuArray = @[@"game.menu.force_close", @"game.menu.log_output", @"game.menu.custom_controls", @"Settings"];
+    // CocoLauncher: no Force close (owner, 9/11); players close the app from the iOS app switcher if needed
+    self.menuArray = @[@"game.menu.log_output", @"game.menu.custom_controls", @"Settings"];
 
     self.menuView = [[UITableView alloc] initWithFrame:CGRectMake(self.view.frame.size.width + 30.0, 0, 
         self.view.frame.size.width * 0.3 - 36.0 * 0.7, self.view.frame.size.height)];
@@ -152,7 +153,15 @@ static CGPoint lastCenterPoint;
     [self presentViewController:vc animated:YES completion:nil];
 }
 
+// CocoLauncher: the on-screen Menu button opens the same table menu as the swipe from the right edge (the
+// UIMenu it showed before crashed the game every time); a second tap closes it.
 - (void)actionOpenNavigationMenu {
+    if (self.menuView.hidden) {
+        self.menuView.hidden = NO;
+        [self animateMenuScale:0.7 duration:0.3];
+    } else {
+        [self animateMenuScale:1 duration:0.3];
+    }
 }
 
 - (UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
@@ -194,19 +203,18 @@ static CGPoint lastCenterPoint;
 }
 
 - (void)didSelectMenuItem:(int)item {
-    switch (item) {
-        case 0:
-            [self actionForceClose];
-            break;
-        case 1:
-            [self.logOutputView actionToggleLogOutput];
-            break;
-        case 2:
-            [self actionOpenCustomControls];
-            break;
-        case 3:
-            [self actionOpenPreferences];
-            break;
+    if (item < 0 || item >= self.menuArray.count) {
+        return;
+    }
+    NSString *name = self.menuArray[item];
+    if ([name isEqualToString:@"game.menu.force_close"]) {
+        [self actionForceClose];
+    } else if ([name isEqualToString:@"game.menu.log_output"]) {
+        [self.logOutputView actionToggleLogOutput];
+    } else if ([name isEqualToString:@"game.menu.custom_controls"]) {
+        [self actionOpenCustomControls];
+    } else if ([name isEqualToString:@"Settings"]) {
+        [self actionOpenPreferences];
     }
 }
 

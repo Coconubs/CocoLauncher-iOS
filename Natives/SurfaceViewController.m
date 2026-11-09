@@ -483,23 +483,9 @@ static GameSurfaceView* pojavWindow;
 
     [self updateControlHiddenState:self.toggleHidden];
 
-    if (menuButton) {
-        NSMutableArray *items = [NSMutableArray new];
-        for (int i = 0; i < self.menuArray.count; i++) {
-            // CocoLauncher: no Force close on the on-screen Menu button (a tap that slid onto it closed the game);
-            // it stays in the swipe-from-the-edge menu, which asks for confirmation
-            if ([self.menuArray[i] isEqualToString:@"game.menu.force_close"]) {
-                continue;
-            }
-            UIAction *item = [UIAction actionWithTitle:localize(self.menuArray[i], nil) image:nil identifier:nil
-                handler:^(id action) {[self didSelectMenuItem:i];}];
-            [items addObject:item];
-        }
-        menuButton.menu = [UIMenu menuWithTitle:@"" image:nil identifier:nil
-            options:UIMenuOptionsDisplayInline children:items];
-        menuButton.showsMenuAsPrimaryAction = YES;
-        self.edgeGesture.enabled = NO;
-    }
+    // CocoLauncher: the Menu button goes through executebtn (SPECIALBTN_MENU -> actionOpenNavigationMenu) instead of a
+    // UIMenu, which crashed the game; the edge swipe stays on.
+    (void)menuButton;
 }
 
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator

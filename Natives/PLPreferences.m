@@ -101,7 +101,12 @@
             // CocoLauncher: mod configs tuned once each, when the file exists
             @"coco_pending_sodium_extra": @YES,
             @"coco_pending_dynamic_fps": @YES,
-            @"coco_pending_moreculling": @YES
+            @"coco_pending_moreculling": @YES,
+            // CocoLauncher (build 37): PLPreferences only stores keys declared here, so the v9/v10 one-shot flags and
+            // the unlocked-heap marker of builds 32-35 were never saved. Existing installs get these defaults on load.
+            @"coco_pending_v9_options": @YES,
+            @"coco_pending_v9_sodium_extra": @YES,
+            @"coco_unlocked_heap_applied": @NO
         }.mutableCopy
     }.mutableCopy;
 
