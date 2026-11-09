@@ -110,7 +110,10 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         if (item.success) item.success();
         return nil;
     }
-    if (!self.cocoOfficialAllowed && [CocoMinecraftEntitlement isOfficialMinecraftURL:item.url]) {
+    // Version JSON and asset index (Metadata group) are public metadata with no
+    // game code or assets in them; the ownership rule applies to the game files.
+    if (!self.cocoOfficialAllowed && item.group != CocoInstallGroupMetadata &&
+        [CocoMinecraftEntitlement isOfficialMinecraftURL:item.url]) {
         NSString *reason = localize(@"coco.install.reason.no_owner", nil);
         [self.cocoReport recordBlocked:item.group name:item.name url:item.url reason:reason];
         NSLog(@"[MCDL] Blocked %@ <%@>: %@", item.name, item.url, reason);

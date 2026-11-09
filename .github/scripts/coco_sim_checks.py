@@ -74,10 +74,12 @@ def install1(path):
         mojang_ok = all(group(r, k).get("state") == "READY" for k in ("metadata", "libraries", "assets"))
         mojang_detail = "official files allowed and ready"
     else:
-        mojang_ok = group(r, "metadata").get("state") == "BLOCKED" and \
-            group(r, "libraries").get("state") == "WAITING" and group(r, "assets").get("state") == "WAITING" and \
+        mojang_ok = group(r, "metadata").get("state") == "READY" and \
+            group(r, "libraries").get("state") == "BLOCKED" and group(r, "assets").get("state") == "BLOCKED" and \
+            group(r, "libraries").get("blocked", 0) > 0 and group(r, "assets").get("blocked", 0) > 0 and \
             r.get("result") == "BLOCKED"
-        mojang_detail = "no verified owner: Mojang metadata BLOCKED with reason, libraries/assets WAITING (expected)"
+        mojang_detail = ("no verified owner: metadata READY, %s Minecraft libraries/client and %s assets BLOCKED with reason (expected)"
+                         % (group(r, "libraries").get("blocked", 0), group(r, "assets").get("blocked", 0)))
     ok = line("LOCAL-06", local and independent and mojang_ok,
               "Local account (legacy, no Microsoft session) used the shared installer; %s" % mojang_detail)
     ok &= line("LOCAL-07", independent,
