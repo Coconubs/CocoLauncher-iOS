@@ -286,7 +286,7 @@
 "controller_configurator.section.footer.controller_style" = "Hiển thị các tên nút điều khiển khác nhau trong bộ cấu hình này.";
 
 /* CocoLauncher */
-"coco.account.hint" = "Có 2 loại tài khoản độc lập. LOCAL: chỉ cần tên nhân vật, tạo và lưu ngay trên máy, không cần Microsoft; chơi đơn và vào server online-mode=false như Coco. MICROSOFT: đăng nhập chính thức. Riêng file Minecraft của Mojang (client, thư viện, assets) chỉ được tải khi trên máy có một tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition được xác minh; game đã cài hợp lệ thì Local chơi không cần Microsoft.";
+"coco.account.hint" = "Có 2 loại tài khoản độc lập. LOCAL: chỉ cần tên nhân vật, tạo và lưu ngay trên máy, không cần Microsoft; app tự tải Minecraft và gói Coco, chơi đơn và vào server online-mode=false như Coco. MICROSOFT: đăng nhập chính thức. Theo EULA của Minecraft, người chơi cần sở hữu Minecraft: Java Edition.";
 "coco.account.error.local_download" = "Thiếu file Minecraft chính thức và trên máy chưa xác minh tài khoản Microsoft đã mua Minecraft: Java Edition. Tài khoản Local vẫn được giữ nguyên.";
 "coco.pack.error.manifest" = "Không tải được danh sách gói Coco Cobblemon. Kiểm tra kết nối mạng rồi thử lại (lần đầu nên dùng Wi-Fi, khoảng 460 MB).";
 "coco.account.option.local" = "CHƠI BẰNG TÀI KHOẢN LOCAL";

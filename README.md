@@ -9,7 +9,7 @@ Launcher Minecraft: Java Edition cho iPhone/iPad, cài sẵn cho server **Coco C
 - File IPA: [Releases](https://github.com/Coconubs/CocoLauncher-iOS/releases)
 
 Cần:
-- Chơi bằng tài khoản Local (tên nhân vật). Nếu máy chưa có file Minecraft: đăng nhập 1 lần bằng tài khoản Microsoft đã mua Minecraft: Java Edition để tải game.
+- Chơi bằng tài khoản Local (tên nhân vật), không cần đăng nhập Microsoft: app tự tải Minecraft, Fabric và gói Coco. Tài khoản Microsoft vẫn dùng được. Theo EULA của Minecraft, người chơi cần sở hữu Minecraft: Java Edition.
 - Cài bằng SideStore hoặc iloader (ESign/KSign không chạy được) và bật JIT bằng StikDebug.
 - Khuyên máy 8 GB RAM. Máy yếu tự dùng cấu hình Thấp; chỉnh RAM và cấu hình Thấp / Cân bằng / Cao trong Cài đặt.
 

@@ -379,11 +379,10 @@ static BOOL CocoIsMicrosoftKind(CocoAccountKind kind) {
 }
 
 + (BOOL)officialDownloadsAllowedForAccountData:(NSDictionary *)selected inHome:(NSString *)home {
-    CocoAccountKind kind = [CocoAccountProvider kindOfAccountData:selected];
-    if (kind == CocoAccountKindMicrosoftDemo || [self accountDataOwnsMinecraft:selected]) {
-        return YES;
-    }
-    return [self verifiedOwnerInHome:home] != nil;
+    // Same as CocoLauncher Android (MojoLauncher): every account type, Local
+    // included, installs the game. Owning Minecraft: Java Edition is the
+    // player's responsibility under the Minecraft EULA.
+    return YES;
 }
 
 @end
@@ -576,16 +575,16 @@ static BOOL CocoIsMicrosoftKind(CocoAccountKind kind) {
         NSString *bare = [self freshHome];
         [CocoLocalAccountProvider createAccountNamed:name inHome:bare error:nil];
         NSDictionary *bareLocal = [CocoAccountProvider savedAccountsNamed:name kind:CocoAccountKindLocal inHome:bare].firstObject;
-        BOOL blockedWithoutOwner = bareLocal != nil &&
-            ![CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:bareLocal inHome:bare];
+        BOOL allowedOnBareDevice = bareLocal != nil &&
+            [CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:bareLocal inHome:bare];
         CocoWriteJSONObject(@{@"username": @"Demo.NoGame", @"xuid": @"1", @"xboxGamertag": @"NoGame", @"expiresAt": @(1)},
             [[CocoAccountProvider accountsDirectoryInHome:bare] stringByAppendingPathComponent:@"msa-1.json"]);
         BOOL demoIsNotOwner = [CocoMinecraftEntitlement verifiedOwnerInHome:bare] == nil;
         [fm removeItemAtPath:bare error:nil];
-        BOOL pass = officialOK && otherOK && allowedWithOwner && blockedWithoutOwner && demoIsNotOwner;
+        BOOL pass = officialOK && otherOK && allowedWithOwner && allowedOnBareDevice && demoIsNotOwner;
         results[@"LOCAL-06"] = [self result:pass detail:[NSString stringWithFormat:
-            @"officialHosts=%d nonOfficialHosts=%d allowedWithVerifiedOwner=%d blockedOnBareDevice=%d demoNotOwner=%d",
-            officialOK, otherOK, allowedWithOwner, blockedWithoutOwner, demoIsNotOwner]];
+            @"officialHosts=%d nonOfficialHosts=%d allowedWithVerifiedOwner=%d allowedOnBareDevice=%d demoNotOwner=%d",
+            officialOK, otherOK, allowedWithOwner, allowedOnBareDevice, demoIsNotOwner]];
     }
 
     [fm removeItemAtPath:home error:nil];

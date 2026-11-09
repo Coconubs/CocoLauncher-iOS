@@ -70,16 +70,11 @@ def install1(path):
             g.get("retries", 0), ",".join(g.get("sources", [])), "; ".join(g.get("problems", []))[:300]))
     local = "kind=Local" in account and "microsoftSession=none" in account and "userType=legacy" in account
     independent = all(group(r, k).get("state") == "READY" for k in ("java", "fabric", "cocopack"))
-    if r.get("officialFilesAllowed"):
-        mojang_ok = all(group(r, k).get("state") == "READY" for k in ("metadata", "libraries", "assets"))
-        mojang_detail = "official files allowed and ready"
-    else:
-        mojang_ok = group(r, "metadata").get("state") == "READY" and \
-            group(r, "libraries").get("state") == "BLOCKED" and group(r, "assets").get("state") == "BLOCKED" and \
-            group(r, "libraries").get("blocked", 0) > 0 and group(r, "assets").get("blocked", 0) > 0 and \
-            r.get("result") == "BLOCKED"
-        mojang_detail = ("no verified owner: metadata READY, %s Minecraft libraries/client and %s assets BLOCKED with reason (expected)"
-                         % (group(r, "libraries").get("blocked", 0), group(r, "assets").get("blocked", 0)))
+    # Local installs the whole game, as on CocoLauncher Android
+    mojang_ok = r.get("officialFilesAllowed") is True and r.get("result") == "READY" and \
+        all(group(r, k).get("state") == "READY" for k in ("metadata", "libraries", "assets"))
+    mojang_detail = "Minecraft metadata=%s libraries=%s assets=%s, result %s" % (
+        group(r, "metadata").get("state"), group(r, "libraries").get("state"), group(r, "assets").get("state"), r.get("result"))
     ok = line("LOCAL-06", local and independent and mojang_ok,
               "Local account (legacy, no Microsoft session) used the shared installer; %s" % mojang_detail)
     ok &= line("LOCAL-07", independent,

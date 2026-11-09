@@ -334,7 +334,7 @@
 "controller_configurator.section.footer.controller_style" = "Show different controller button names in this configurator.";
 
 /* CocoLauncher */
-"coco.account.hint" = "There are two separate account types. LOCAL: just your character name, created and saved on this device right away, no Microsoft needed; for singleplayer and online-mode=false servers such as Coco. MICROSOFT: official sign-in. Only Mojang's Minecraft files (client, libraries, assets) need a Microsoft account that OWNS Minecraft: Java Edition verified on this device; once the game is installed, Local plays without Microsoft.";
+"coco.account.hint" = "There are two separate account types. LOCAL: just your character name, created and saved on this device right away, no Microsoft needed; the app downloads Minecraft and the Coco pack, for singleplayer and online-mode=false servers such as Coco. MICROSOFT: official sign-in. Under the Minecraft EULA, players need to own Minecraft: Java Edition.";
 "coco.account.error.local_download" = "Official Minecraft files are missing and no Microsoft account that owns Minecraft: Java Edition is verified on this device. Your Local account is kept.";
 "coco.pack.error.manifest" = "Could not download the Coco Cobblemon file list. Check your internet connection (Wi-Fi is recommended for the first download, about 460 MB) and try again.";
 "coco.account.option.local" = "PLAY WITH A LOCAL ACCOUNT";

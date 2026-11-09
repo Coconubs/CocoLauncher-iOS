@@ -109,9 +109,9 @@ extern NSString *const CocoAccountStorageIdKey; // @"storageId"
 // A saved Microsoft account on this device whose sign-in confirmed it owns
 // Minecraft: Java Edition. Read-only: no token, no refresh, no session.
 + (NSString *)verifiedOwnerInHome:(NSString *)home;
-// Whether official files may be downloaded right now: the selected account
-// owns the game (or is a Microsoft demo account), or an owner was verified
-// on this device. The selected account is never changed.
+// Whether official files may be downloaded right now. Always YES: every
+// account type installs the game, as on CocoLauncher Android. The selected
+// account is never changed.
 + (BOOL)officialDownloadsAllowedForAccountData:(NSDictionary *)selected inHome:(NSString *)home;
 
 @end

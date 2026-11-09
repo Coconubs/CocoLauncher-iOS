@@ -4,9 +4,9 @@ name: Simulator smoke test
 # the upstream "iossimulator" build), starts it on a clean simulator with no
 # Microsoft account, and checks:
 #   - the account/installer self-tests (LOCAL-01..06, LOCAL-04b, INSTALL-01..04)
-#   - a Local account pressing CHOI once: Java, Fabric and the Coco pack are
-#     prepared without Microsoft; Mojang files are reported as blocked
-#     (no owner verified on the runner), with the reason (LOCAL-06, LOCAL-07)
+#   - a Local account pressing CHOI once: Java, Fabric, the Minecraft files and
+#     the Coco pack are all prepared without Microsoft (LOCAL-06, LOCAL-07);
+#     with cocoAutoPlay the app stops after the install instead of launching
 #   - close/reopen and CHOI again: same Local account, nothing valid is
 #     downloaded again (LOCAL-02, LOCAL-10)
 # The game itself is not started (needs JIT and the Mojang files).
@@ -135,7 +135,7 @@ jobs:
           xcrun simctl spawn "$UDID" defaults delete "$BUNDLE_ID" cocoDemoName || true
           xcrun simctl spawn "$UDID" defaults write "$BUNDLE_ID" cocoSelfTest -bool NO
           xcrun simctl launch "$UDID" "$BUNDLE_ID" > /dev/null 2>&1
-          for i in $(seq 1 60); do
+          for i in $(seq 1 120); do
             NOW="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("finishedAt",0))' "$DOCS/coco-install-report.json" 2>/dev/null || echo 0)"
             [ "$NOW" != "$BEFORE" ] && break
             sleep 5

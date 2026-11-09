@@ -1239,7 +1239,8 @@ void CocoReloadRootViewController(void) {
     [self stopObservingProgress];
     self.task = nil;
     [self restorePlayAccount];
-    if (metadata == nil) {
+    // Simulator workflow (cocoAutoPlay): stop after the install, the game needs JIT
+    if (metadata == nil || [NSUserDefaults.standardUserDefaults boolForKey:@"cocoAutoPlay"]) {
         [self setBusy:NO title:nil];
         return;
     }
