@@ -1,10 +1,11 @@
+diff --git a/MobileGlues-cpp/config/settings.cpp b/MobileGlues-cpp/config/settings.cpp
+index 43d5dd0..60c7633 100644
 --- a/MobileGlues-cpp/config/settings.cpp
 +++ b/MobileGlues-cpp/config/settings.cpp
-@@ -32,6 +32,39 @@
-     global_settings.custom_gl_version = {0, 0, 0}; // will go default
+@@ -33,6 +33,39 @@ void init_settings() {
      global_settings.fsr1_setting = FSR1_Quality_Preset::Disabled;
      global_settings.hide_mg_env_level = HideMGEnvLevel::Disabled;
-+
+ 
 +    // CocoLauncher: the defaults above stay, but every key present in MG_DIR_PATH/config.json
 +    // (written by the launcher's advanced graphics settings) overrides its default.
 +    // No file or a missing key keeps the behaviour of upstream MobileGlues on Apple.
@@ -37,12 +38,43 @@
 +            global_settings.fsr1_setting = static_cast<FSR1_Quality_Preset>(v);
 +        }
 +    }
- 
++
  #else
  
+     int success = initialized;
+diff --git a/MobileGlues-cpp/egl/trace.h b/MobileGlues-cpp/egl/trace.h
+index 61cf26f..f97adb2 100644
+--- a/MobileGlues-cpp/egl/trace.h
++++ b/MobileGlues-cpp/egl/trace.h
+@@ -12,6 +12,8 @@
+ #include <EGL/egl.h>
+ #include <sys/syscall.h>
+ #include <unistd.h>
++#include <pthread.h>
++#include <stdint.h>
+ 
+ // Tracing for the EGL layer.
+ //
+@@ -35,7 +37,14 @@
+ // A thread id, via the syscall rather than gettid(), which bionic only exposes as
+ // a real symbol from API 30 and this library targets 21.
+ static inline int mg_egl_tid(void) {
++#if defined(__APPLE__)
++    // CocoLauncher: no gettid syscall on Darwin
++    uint64_t tid = 0;
++    pthread_threadid_np(NULL, &tid);
++    return (int)tid;
++#else
+     return (int)syscall(__NR_gettid);
++#endif
+ }
+ 
+ #if MG_EGL_TRACE
+diff --git a/MobileGlues-cpp/gl/framebuffer.cpp b/MobileGlues-cpp/gl/framebuffer.cpp
+index cb2585a..e15e76d 100644
 --- a/MobileGlues-cpp/gl/framebuffer.cpp
 +++ b/MobileGlues-cpp/gl/framebuffer.cpp
-@@ -347,11 +347,16 @@
+@@ -347,11 +347,16 @@ void restore_home_attachments(framebuffer_t& fbo) {
  // library exports. An application that resolves glDeleteFramebuffersARB, as
  // anything written against EXT_framebuffer_object does, got a null pointer.
  extern "C" {
