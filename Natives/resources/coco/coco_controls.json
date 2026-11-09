@@ -723,7 +723,7 @@
       "strokeWidth": 0,
       "width": 50,
       "displayInGame": true,
-      "displayInMenu": false
+      "displayInMenu": true
     }
   ],
   "mDrawerDataList": [],

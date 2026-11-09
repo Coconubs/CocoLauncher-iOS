@@ -249,7 +249,8 @@ void init_setupMultiDir() {
 // v4: players still on Amethyst's default.json (no Coco buttons at all) are moved to the Coco layout once.
 // v5 removed the Menu button (its UIMenu started with Force close, which closed the game); v6 brings it back
 // without Force close (SurfaceViewController), merged in by name like any new button.
-#define COCO_CONTROLS_VERSION 6
+// v7: V (LumyMon dismount) visible in menus as well, it was missing on every screen with a cursor.
+#define COCO_CONTROLS_VERSION 7
 void init_setupCocoControls() {
     NSString *bundled = [NSBundle.mainBundle pathForResource:@"coco_controls" ofType:@"json" inDirectory:@"coco"];
     if (bundled == nil) {
@@ -278,6 +279,9 @@ void init_setupCocoControls() {
         NSMutableSet *names = [NSMutableSet new];
         for (NSMutableDictionary *button in list) {
             if (button[@"name"]) [names addObject:button[@"name"]];
+            if (installed < 7 && [button[@"name"] isEqual:@"V"] && [button[@"keycodes"] count] > 0 && [button[@"keycodes"][0] intValue] == 86) {
+                button[@"displayInMenu"] = @YES;
+            }
             // build 28 had ◁ ▷ the wrong way round (SPECIALBTN_SCROLLUP sends -1 = next slot)
             if (installed < 3 && [button[@"name"] isEqualToString:@"◁"] && [button[@"keycodes"] count] > 0 && [button[@"keycodes"][0] intValue] == SPECIALBTN_SCROLLUP) {
                 button[@"keycodes"] = [@[@(SPECIALBTN_SCROLLDOWN), @0, @0, @0] mutableCopy];
