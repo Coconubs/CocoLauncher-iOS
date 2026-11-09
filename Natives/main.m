@@ -241,6 +241,41 @@ void init_setupMultiDir() {
 // CocoLauncher: Coco Cobblemon profile (Minecraft 1.21.1 + Fabric Loader 0.18.4,
 // game directory ./CocoLite). The Fabric version file ships with the app; the
 // game itself is still downloaded by the launcher with the player's account.
+// CocoLauncher: the Coco button layout (same buttons as CocoLauncher Android:
+// D-pad, Inv, Shift, Jump, P/C/M, R, party up/down, Chat, Tab, F3, F5, plus Esc
+// and the in-game Menu). Copied again when the bundled layout version goes up;
+// made the default once, unless the player picked another layout.
+#define COCO_CONTROLS_VERSION 1
+void init_setupCocoControls() {
+    NSString *bundled = [NSBundle.mainBundle pathForResource:@"coco_controls" ofType:@"json" inDirectory:@"coco"];
+    if (bundled == nil) {
+        NSLog(@"[Coco] Bundled coco_controls.json is missing");
+        return;
+    }
+    NSString *dir = [@(getenv("AME_HOME")) stringByAppendingPathComponent:@"controlmap"];
+    NSString *target = [dir stringByAppendingPathComponent:@"coco_controls.json"];
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    NSInteger installed = [defaults integerForKey:@"CocoControlsVersion"];
+    if (installed >= COCO_CONTROLS_VERSION && [fm fileExistsAtPath:target]) {
+        return;
+    }
+    [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
+    [fm removeItemAtPath:target error:nil];
+    NSError *error = nil;
+    if (![fm copyItemAtPath:bundled toPath:target error:&error]) {
+        NSLog(@"[Coco] Could not copy coco_controls.json: %@", error.localizedDescription);
+        return;
+    }
+    if (installed == 0) {
+        NSString *current = getPrefObject(@"control.default_ctrl");
+        if (current.length == 0 || [current isEqualToString:@"default.json"]) {
+            setPrefObject(@"control.default_ctrl", @"coco_controls.json");
+        }
+    }
+    [defaults setInteger:COCO_CONTROLS_VERSION forKey:@"CocoControlsVersion"];
+    NSLog(@"[Coco] Installed coco_controls.json v%d", COCO_CONTROLS_VERSION);
+}
+
 void init_setupCoco() {
     NSString *gameDir = @(getenv("GAME_DIR"));
     NSString *versionJson = [NSString stringWithFormat:@"%1$@/versions/%2$@/%2$@.json", gameDir, COCO_VERSION_ID];
@@ -363,6 +398,7 @@ int main(int argc, char *argv[]) {
     toggleIsolatedPref(NO);
     [PLProfiles updateCurrent];
     init_setupCoco();
+    init_setupCocoControls();
     CocoMigrateSettings();
     NSLog(@"[CocoLauncher] RAM %d MB, process limit %d MB, increased-memory-limit %@, heap %ld MB (recommended %d, safe max %d), preset %@",
         CocoDeviceMemoryMB(), CocoProcessMemoryLimitMB(), CocoHasIncreasedMemoryLimit() ? @"YES" : @"NO",
