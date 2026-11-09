@@ -376,6 +376,17 @@ void CocoWriteMobileGluesConfig(NSString *mgDir) {
         config[option[@"mgKey"]] = @(value);
         [summary addObject:[NSString stringWithFormat:@"%@=%d", option[@"mgKey"], value]];
     }
+    // MobileGlues 2.0 reads a backend order ("multidrawOrder") instead of "multidrawMode"
+    id mode = config[@"multidrawMode"];
+    [config removeObjectForKey:@"multidrawMode"];
+    NSDictionary<NSNumber *, NSString *> *orders = @{@1: @"indirect,native", @2: @"basevertex,native", @4: @"unroll,native"};
+    NSString *order = orders[@([mode intValue])];
+    if (order) {
+        config[@"multidrawOrder"] = order;
+    } else {
+        [config removeObjectForKey:@"multidrawOrder"];
+    }
+    [config removeObjectForKey:@"enableExtGL43"]; // not in MobileGlues 2.0
     config[CocoMGConfigMarker] = @1;
     NSData *data = [NSJSONSerialization dataWithJSONObject:config options:NSJSONWritingPrettyPrinted error:nil];
     if ([data writeToFile:path atomically:YES]) {

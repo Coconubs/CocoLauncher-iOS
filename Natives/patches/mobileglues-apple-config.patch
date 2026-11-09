@@ -1,12 +1,14 @@
---- a/src/main/cpp/config/settings.cpp
-+++ b/src/main/cpp/config/settings.cpp
-@@ -26,6 +26,40 @@
+--- a/MobileGlues-cpp/config/settings.cpp
++++ b/MobileGlues-cpp/config/settings.cpp
+@@ -32,6 +32,39 @@
      global_settings.custom_gl_version = {0, 0, 0}; // will go default
      global_settings.fsr1_setting = FSR1_Quality_Preset::Disabled;
- 
+     global_settings.hide_mg_env_level = HideMGEnvLevel::Disabled;
++
 +    // CocoLauncher: the defaults above stay, but every key present in MG_DIR_PATH/config.json
 +    // (written by the launcher's advanced graphics settings) overrides its default.
 +    // No file or a missing key keeps the behaviour of upstream MobileGlues on Apple.
++    // Loading the config here also lets parse_multidraw_orders() read "multidrawOrder".
 +    if (initialized || config_refresh()) {
 +        int v = config_get_int("enableNoError");
 +        if (v == static_cast<int>(NoErrorConfig::Disable)) {
@@ -16,8 +18,6 @@
 +        } else if (v == static_cast<int>(NoErrorConfig::Level2)) {
 +            global_settings.ignore_error = IgnoreErrorLevel::Full;
 +        }
-+        v = config_get_int("enableExtGL43");
-+        if (v >= 0) global_settings.ext_gl43 = v > 0;
 +        v = config_get_int("enableExtComputeShader");
 +        if (v >= 0) global_settings.ext_compute_shader = v > 0;
 +        v = config_get_int("enableExtTimerQuery");
@@ -37,7 +37,6 @@
 +            global_settings.fsr1_setting = static_cast<FSR1_Quality_Preset>(v);
 +        }
 +    }
-+
+ 
  #else
  
-     int success = initialized;
