@@ -110,14 +110,14 @@ footer { color: var(--muted); font-size: .82rem; margin-top: 28px; }
       <div><b>Máy tính</b>Windows hoặc Mac + cáp, dùng 1 lần khoảng 30 phút.</div>
       <div><b>Tài khoản</b>Một Apple ID (nên dùng Apple ID phụ). Vào game chỉ cần tên nhân vật.</div>
     </div>
-    <p class="muted" style="margin:12px 0 0">Không cài bằng KSign, ESign hay "chứng chỉ chung": app không bật được JIT nên không chạy được. Theo EULA của Minecraft, người chơi cần sở hữu Minecraft: Java Edition.</p>
+    <p class="muted" style="margin:12px 0 0">Không cài bằng KSign, ESign hay "chứng chỉ chung": app không bật được JIT nên không chạy được.</p>
   </section>
 
   <section class="card">
     <h2>Tải CocoLauncher</h2>
-    <a class="btn primary" id="ipa" href="https://github.com/Coconubs/CocoLauncher-iOS/releases">⬇ Tải file IPA (dùng với iloader)</a>
+    <a class="btn primary" id="install" href="cai.html">Cài thẳng bằng SideStore</a>
+    <a class="btn" id="ipa" href="https://github.com/Coconubs/CocoLauncher-iOS/releases">⬇ Tải file IPA (dùng với iloader)</a>
     <a class="btn" href="them-nguon.html">Thêm nguồn Coco vào SideStore</a>
-    <a class="btn" id="install" href="cai.html">Cài thẳng bằng SideStore</a>
     <p class="muted" style="margin:10px 0 0">Nguồn SideStore: <code>https://coconubs.github.io/CocoLauncher-iOS/source.json</code></p>
   </section>
 
@@ -125,11 +125,11 @@ footer { color: var(--muted); font-size: .82rem; margin-top: 28px; }
     <h2>Hướng dẫn cài</h2>
     <p class="muted" style="margin:0 0 12px">Xem phiên bản iOS: Cài đặt › Cài đặt chung › Giới thiệu › Phiên bản iOS.</p>
     <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true" data-pane="ios26">iOS 26 trở xuống</button>
-      <button role="tab" aria-selected="false" data-pane="ios27">iOS 27 trở lên</button>
+      <button role="tab" aria-selected="true" data-pane="ios27">iOS 27 trở lên</button>
+      <button role="tab" aria-selected="false" data-pane="ios26">iOS 26 trở xuống</button>
     </div>
 
-    <div class="pane on" id="ios26">
+    <div class="pane" id="ios26">
       <p class="part">Phần 1 · Với máy tính (1 lần)</p>
       <ol class="steps">
         <li><b>iPhone:</b> App Store › cài <b>LocalDevVPN</b> (miễn phí) › mở › <b>Connect</b> › cho phép thêm VPN.</li>
@@ -146,7 +146,7 @@ footer { color: var(--muted); font-size: .82rem; margin-top: 28px; }
       <div class="note">Apple ID miễn phí chỉ cài được <b>3 app</b>: SideStore, CocoLauncher, StikDebug. Làm đúng thứ tự 8 › 9 › 10 (bước Place chỉ làm được khi StikDebug đã cài). Nâng iOS, đổi mật mã hoặc reset máy thì phải cắm máy tính làm lại bước 10.</div>
     </div>
 
-    <div class="pane" id="ios27">
+    <div class="pane on" id="ios27">
       <p class="part">Phần 1 · Với máy tính (1 lần)</p>
       <ol class="steps">
         <li><b>iPhone:</b> App Store › cài <b>LocalDevVPN</b> › mở › <b>Connect</b>.</li>
@@ -205,14 +205,6 @@ document.querySelectorAll(".tabs button").forEach(function (b) {
     document.querySelectorAll(".pane").forEach(function (p) { p.classList.toggle("on", p.id === b.dataset.pane); });
   });
 });
-// Open the tab for this iPhone's iOS version
-(function () {
-  var m = navigator.userAgent.match(/OS (\d+)_/);
-  if (m && parseInt(m[1], 10) >= 27) {
-    var b = document.querySelector('.tabs button[data-pane="ios27"]');
-    if (b) b.click();
-  }
-})();
 fetch("source.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (src) {
   var app = (src.apps || [])[0];
   if (!app || !app.versions || !app.versions.length) {
