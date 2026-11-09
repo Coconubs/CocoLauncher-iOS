@@ -825,6 +825,16 @@ static GameSurfaceView* pojavWindow;
 
 #pragma mark - Input view stuff
 
+// In landscape with the top of the phone on the left, the slid-up chat line
+// sits right behind the Dynamic Island / notch: move the game right by it.
+- (CGFloat)cocoIslandInset {
+    UIInterfaceOrientation orientation = self.view.window.windowScene.interfaceOrientation;
+    if (orientation == UIInterfaceOrientationLandscapeRight) {
+        return self.view.safeAreaInsets.left;
+    }
+    return 0;
+}
+
 - (void)cocoKeyboardWillChange:(NSNotification *)notification {
     // Slide the whole game up by the part the on-screen keyboard covers, so
     // Minecraft's own chat line and its command suggestions stay visible.
@@ -840,7 +850,7 @@ static GameSurfaceView* pojavWindow;
     }
     double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     [UIView animateWithDuration:duration animations:^{
-        self.rootView.transform = shift > 0 ? CGAffineTransformMakeTranslation(0, -shift) : CGAffineTransformIdentity;
+        self.rootView.transform = shift > 0 ? CGAffineTransformMakeTranslation(self.cocoIslandInset, -shift) : CGAffineTransformIdentity;
     }];
 }
 
