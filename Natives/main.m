@@ -245,7 +245,8 @@ void init_setupMultiDir() {
 // D-pad, Inv, Shift, Jump, P/C/M, R, party up/down, Chat, Tab, F3, F5, plus Esc
 // and the in-game Menu). Copied again when the bundled layout version goes up;
 // made the default once, unless the player picked another layout.
-#define COCO_CONTROLS_VERSION 2
+// v3: menu-only "Cuộn ▲/▼" (list scrolling in menus), V (LumyMon dismount), ◁ ▷ fixed (GLFW +1 = previous slot).
+#define COCO_CONTROLS_VERSION 3
 void init_setupCocoControls() {
     NSString *bundled = [NSBundle.mainBundle pathForResource:@"coco_controls" ofType:@"json" inDirectory:@"coco"];
     if (bundled == nil) {
@@ -265,10 +266,21 @@ void init_setupCocoControls() {
     if ([existing isKindOfClass:NSMutableDictionary.class] && [existing[@"mControlDataList"] isKindOfClass:NSMutableArray.class]) {
         // Keep the player's edits: only add buttons (by name) that the file does not have yet
         NSDictionary *fresh = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:bundled] options:0 error:nil];
+        // Old files (layout v4) get displayInGame/displayInMenu = YES for every button at load time, which
+        // would also show the menu-only buttons in game: bring the file to v8 first so the flags are kept.
+        for (int i = 0; i < 4 && [existing[@"version"] intValue] < 8; i++) {
+            if (!convertLayoutIfNecessary(existing)) break;
+        }
         NSMutableArray *list = existing[@"mControlDataList"];
         NSMutableSet *names = [NSMutableSet new];
-        for (NSDictionary *button in list) {
+        for (NSMutableDictionary *button in list) {
             if (button[@"name"]) [names addObject:button[@"name"]];
+            // build 28 had ◁ ▷ the wrong way round (SPECIALBTN_SCROLLUP sends -1 = next slot)
+            if (installed < 3 && [button[@"name"] isEqualToString:@"◁"] && [button[@"keycodes"] count] > 0 && [button[@"keycodes"][0] intValue] == SPECIALBTN_SCROLLUP) {
+                button[@"keycodes"] = [@[@(SPECIALBTN_SCROLLDOWN), @0, @0, @0] mutableCopy];
+            } else if (installed < 3 && [button[@"name"] isEqualToString:@"▷"] && [button[@"keycodes"] count] > 0 && [button[@"keycodes"][0] intValue] == SPECIALBTN_SCROLLDOWN) {
+                button[@"keycodes"] = [@[@(SPECIALBTN_SCROLLUP), @0, @0, @0] mutableCopy];
+            }
         }
         int added = 0;
         for (NSDictionary *button in fresh[@"mControlDataList"]) {
