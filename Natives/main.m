@@ -247,9 +247,9 @@ void init_setupMultiDir() {
 // made the default once, unless the player picked another layout.
 // v3: menu-only "Cuộn ▲/▼" (list scrolling in menus), V (LumyMon dismount), ◁ ▷ fixed (GLFW +1 = previous slot).
 // v4: players still on Amethyst's default.json (no Coco buttons at all) are moved to the Coco layout once.
-// v5: the Menu button (-9, a UIMenu with Force close first) is gone: tapping it in game closed the game. Esc
-// opens the game menu, the launcher menu opens with a swipe from the right edge (enabled when no Menu button).
-#define COCO_CONTROLS_VERSION 5
+// v5 removed the Menu button (its UIMenu started with Force close, which closed the game); v6 brings it back
+// without Force close (SurfaceViewController), merged in by name like any new button.
+#define COCO_CONTROLS_VERSION 6
 void init_setupCocoControls() {
     NSString *bundled = [NSBundle.mainBundle pathForResource:@"coco_controls" ofType:@"json" inDirectory:@"coco"];
     if (bundled == nil) {
@@ -275,12 +275,6 @@ void init_setupCocoControls() {
             if (!convertLayoutIfNecessary(existing)) break;
         }
         NSMutableArray *list = existing[@"mControlDataList"];
-        if (installed < 5) {
-            NSIndexSet *menus = [list indexesOfObjectsPassingTest:^BOOL(NSDictionary *button, NSUInteger idx, BOOL *stop) {
-                return [button[@"name"] isEqual:@"Menu"] && [button[@"keycodes"] count] > 0 && [button[@"keycodes"][0] intValue] == SPECIALBTN_MENU;
-            }];
-            [list removeObjectsAtIndexes:menus];
-        }
         NSMutableSet *names = [NSMutableSet new];
         for (NSMutableDictionary *button in list) {
             if (button[@"name"]) [names addObject:button[@"name"]];

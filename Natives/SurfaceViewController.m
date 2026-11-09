@@ -486,6 +486,11 @@ static GameSurfaceView* pojavWindow;
     if (menuButton) {
         NSMutableArray *items = [NSMutableArray new];
         for (int i = 0; i < self.menuArray.count; i++) {
+            // CocoLauncher: no Force close on the on-screen Menu button (a tap that slid onto it closed the game);
+            // it stays in the swipe-from-the-edge menu, which asks for confirmation
+            if ([self.menuArray[i] isEqualToString:@"game.menu.force_close"]) {
+                continue;
+            }
             UIAction *item = [UIAction actionWithTitle:localize(self.menuArray[i], nil) image:nil identifier:nil
                 handler:^(id action) {[self didSelectMenuItem:i];}];
             [items addObject:item];
