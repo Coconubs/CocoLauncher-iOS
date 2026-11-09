@@ -245,7 +245,7 @@ void init_setupMultiDir() {
 // D-pad, Inv, Shift, Jump, P/C/M, R, party up/down, Chat, Tab, F3, F5, plus Esc
 // and the in-game Menu). Copied again when the bundled layout version goes up;
 // made the default once, unless the player picked another layout.
-#define COCO_CONTROLS_VERSION 1
+#define COCO_CONTROLS_VERSION 2
 void init_setupCocoControls() {
     NSString *bundled = [NSBundle.mainBundle pathForResource:@"coco_controls" ofType:@"json" inDirectory:@"coco"];
     if (bundled == nil) {
@@ -260,11 +260,36 @@ void init_setupCocoControls() {
         return;
     }
     [fm createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
-    [fm removeItemAtPath:target error:nil];
-    NSError *error = nil;
-    if (![fm copyItemAtPath:bundled toPath:target error:&error]) {
-        NSLog(@"[Coco] Could not copy coco_controls.json: %@", error.localizedDescription);
-        return;
+    NSMutableDictionary *existing = [fm fileExistsAtPath:target] ? [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:target]
+        options:NSJSONReadingMutableContainers error:nil] : nil;
+    if ([existing isKindOfClass:NSMutableDictionary.class] && [existing[@"mControlDataList"] isKindOfClass:NSMutableArray.class]) {
+        // Keep the player's edits: only add buttons (by name) that the file does not have yet
+        NSDictionary *fresh = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfFile:bundled] options:0 error:nil];
+        NSMutableArray *list = existing[@"mControlDataList"];
+        NSMutableSet *names = [NSMutableSet new];
+        for (NSDictionary *button in list) {
+            if (button[@"name"]) [names addObject:button[@"name"]];
+        }
+        int added = 0;
+        for (NSDictionary *button in fresh[@"mControlDataList"]) {
+            if (button[@"name"] && ![names containsObject:button[@"name"]]) {
+                [list addObject:[button mutableCopy]];
+                added++;
+            }
+        }
+        NSData *out = [NSJSONSerialization dataWithJSONObject:existing options:NSJSONWritingPrettyPrinted error:nil];
+        if (out == nil || ![out writeToFile:target atomically:YES]) {
+            NSLog(@"[Coco] Could not update coco_controls.json");
+            return;
+        }
+        NSLog(@"[Coco] coco_controls.json: added %d new buttons", added);
+    } else {
+        [fm removeItemAtPath:target error:nil];
+        NSError *error = nil;
+        if (![fm copyItemAtPath:bundled toPath:target error:&error]) {
+            NSLog(@"[Coco] Could not copy coco_controls.json: %@", error.localizedDescription);
+            return;
+        }
     }
     if (installed == 0) {
         NSString *current = getPrefObject(@"control.default_ctrl");

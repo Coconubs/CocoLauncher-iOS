@@ -97,7 +97,11 @@
             @"coco_pending_preset": cocoPreset,
             @"coco_settings_version": @0,
             // CocoLauncher: write bobView:false into options.txt on the next launch
-            @"coco_pending_bobview_off": @YES
+            @"coco_pending_bobview_off": @YES,
+            // CocoLauncher: mod configs tuned once each, when the file exists
+            @"coco_pending_sodium_extra": @YES,
+            @"coco_pending_dynamic_fps": @YES,
+            @"coco_pending_moreculling": @YES
         }.mutableCopy
     }.mutableCopy;
 

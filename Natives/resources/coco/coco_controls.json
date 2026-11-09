@@ -551,6 +551,52 @@
       "strokeColor": -1,
       "strokeWidth": 0,
       "width": 80
+    },
+    {
+      "bgColor": 1291845632,
+      "cornerRadius": 0,
+      "dynamicX": "${screen_width} * 0.33 - ${width} - ${margin}",
+      "dynamicY": "${bottom} - ${margin}",
+      "height": 50,
+      "isDynamicBtn": false,
+      "isHideable": false,
+      "isSwipeable": false,
+      "isToggle": false,
+      "keycodes": [
+        -7,
+        0,
+        0,
+        0
+      ],
+      "name": "◁",
+      "opacity": 1,
+      "passThruEnabled": false,
+      "strokeColor": -1,
+      "strokeWidth": 0,
+      "width": 50
+    },
+    {
+      "bgColor": 1291845632,
+      "cornerRadius": 0,
+      "dynamicX": "${screen_width} * 0.67 + ${margin}",
+      "dynamicY": "${bottom} - ${margin}",
+      "height": 50,
+      "isDynamicBtn": false,
+      "isHideable": false,
+      "isSwipeable": false,
+      "isToggle": false,
+      "keycodes": [
+        -8,
+        0,
+        0,
+        0
+      ],
+      "name": "▷",
+      "opacity": 1,
+      "passThruEnabled": false,
+      "strokeColor": -1,
+      "strokeWidth": 0,
+      "width": 50
     }
   ],
   "mDrawerDataList": [],

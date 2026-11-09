@@ -81,7 +81,13 @@ NSString *CocoDefaultPreset(void) {
 }
 
 int CocoPresetResolution(NSString *preset) {
-    if ([preset isEqualToString:COCO_PRESET_LOW]) return 50;
+    if ([preset isEqualToString:COCO_PRESET_LOW]) {
+        // 720 px on the short side (as Amethyst-Android does on weak devices),
+        // sharper than a fixed 50% on large screens
+        CGFloat shortSide = MIN(UIScreen.mainScreen.nativeBounds.size.width, UIScreen.mainScreen.nativeBounds.size.height);
+        if (shortSide <= 0) return 50;
+        return MAX(40, MIN(100, (int)lround(720.0 * 100.0 / shortSide)));
+    }
     if ([preset isEqualToString:COCO_PRESET_HIGH]) return 100;
     return 75;
 }
@@ -196,6 +202,16 @@ void CocoMigrateSettings(void) {
         if (![getPrefObject(@"video.quality_preset") isEqualToString:COCO_PRESET_LOW]) {
             CocoApplyPreset(COCO_PRESET_LOW);
         }
+    }
+    // Version 8: Low renders at 720 px on the short side; mod configs tuned once
+    // (Sodium Extra animations/particles, Dynamic FPS GC, MoreCulling)
+    if (version < 8) {
+        if ([getPrefObject(@"video.quality_preset") isEqualToString:COCO_PRESET_LOW]) {
+            setPrefObject(@"video.resolution", @(CocoPresetResolution(COCO_PRESET_LOW)));
+        }
+        setPrefBool(@"internal.coco_pending_sodium_extra", YES);
+        setPrefBool(@"internal.coco_pending_dynamic_fps", YES);
+        setPrefBool(@"internal.coco_pending_moreculling", YES);
     }
     // Version 7: no vibration on button taps, View Bobbing off (once)
     if (version < 7) {

@@ -6,6 +6,7 @@
 @interface MinecraftOptionUtils ()
 @property(nonatomic) NSMutableArray<NSString *> *lineList;
 - (void)cocoApplySodiumThreads:(int)threads;
+- (void)cocoTuneModConfigs;
 @end
 
 @implementation MinecraftOptionUtils
@@ -25,6 +26,7 @@
     [options setDefaultForKey:@"renderDistance" value:@"2"];
     [options setDefaultForKey:@"simulationDistance" value:@"5"];
     [options setDefaultForKey:@"bobView" value:@"false"];
+    [options cocoTuneModConfigs];
     // CocoLauncher: View Bobbing off once (players can turn it back on in the game)
     if (getPrefBool(@"internal.coco_pending_bobview_off")) {
         [options setKey:@"bobView" value:@"false"];
@@ -61,6 +63,98 @@
     NSData *out = [NSJSONSerialization dataWithJSONObject:json options:NSJSONWritingPrettyPrinted error:nil];
     if (out != nil && [out writeToFile:path atomically:YES]) {
         NSLog(@"[CocoLauncher] Sodium chunk builder threads = %d", threads);
+    }
+}
+
+// Mod configs written once (players can change them back in the game). Each one
+// waits until the mod has created its file, so nothing incomplete is written.
+- (NSString *)cocoConfigPath:(NSString *)name {
+    return [[[self.optionsPath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"config"] stringByAppendingPathComponent:name];
+}
+
+- (NSMutableDictionary *)cocoReadJSON:(NSString *)path {
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    if (data == nil) return nil;
+    id json = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
+    return [json isKindOfClass:NSMutableDictionary.class] ? json : nil;
+}
+
+- (BOOL)cocoWriteJSON:(NSDictionary *)json to:(NSString *)path {
+    NSData *out = [NSJSONSerialization dataWithJSONObject:json options:NSJSONWritingPrettyPrinted error:nil];
+    return out != nil && [out writeToFile:path atomically:YES];
+}
+
+// Sets keys that already exist in a section to the given value
+static int CocoSetExisting(NSMutableDictionary *json, NSString *section, NSArray<NSString *> *keys, id value) {
+    NSMutableDictionary *dict = json[section];
+    if (![dict isKindOfClass:NSMutableDictionary.class]) return 0;
+    int changed = 0;
+    for (NSString *key in keys) {
+        if (dict[key] != nil) {
+            dict[key] = value;
+            changed++;
+        }
+    }
+    return changed;
+}
+
+- (void)cocoTuneModConfigs {
+    // Sodium Extra: animated textures (re-uploaded every tick through MobileGlues) and some particles off
+    if (getPrefBool(@"internal.coco_pending_sodium_extra")) {
+        NSString *path = [self cocoConfigPath:@"sodium-extra-options.json"];
+        NSMutableDictionary *json = [self cocoReadJSON:path];
+        if (json) {
+            int n = CocoSetExisting(json, @"animation_settings", @[@"water", @"lava", @"fire", @"portal", @"block_animations"], @NO);
+            n += CocoSetExisting(json, @"particle_settings", @[@"rain_splash", @"block_breaking", @"block_break"], @NO);
+            n += CocoSetExisting(json, @"render_settings", @[@"beacon_beam"], @NO);
+            if ([self cocoWriteJSON:json to:path]) {
+                setPrefBool(@"internal.coco_pending_sodium_extra", NO);
+                NSLog(@"[CocoLauncher] Sodium Extra: %d effects turned off", n);
+            }
+        }
+    }
+    // Dynamic FPS: run a GC when the game is in the background / unfocused
+    if (getPrefBool(@"internal.coco_pending_dynamic_fps")) {
+        NSString *path = [self cocoConfigPath:@"dynamic_fps.json"];
+        NSMutableDictionary *json = [self cocoReadJSON:path];
+        if (json && [json[@"states"] isKindOfClass:NSMutableDictionary.class]) {
+            int n = 0;
+            for (NSString *state in @[@"unfocused", @"invisible"]) {
+                NSMutableDictionary *dict = json[@"states"][state];
+                if ([dict isKindOfClass:NSMutableDictionary.class]) {
+                    dict[@"run_garbage_collector"] = @YES;
+                    n++;
+                }
+            }
+            if ([self cocoWriteJSON:json to:path]) {
+                setPrefBool(@"internal.coco_pending_dynamic_fps", NO);
+                NSLog(@"[CocoLauncher] Dynamic FPS: GC in %d background states", n);
+            }
+        }
+    }
+    // MoreCulling (TOML): cull item frames, sign text, rain and beacon beams further away
+    if (getPrefBool(@"internal.coco_pending_moreculling")) {
+        NSString *path = [self cocoConfigPath:@"moreculling.toml"];
+        NSString *text = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+        if (text) {
+            NSDictionary<NSString *, NSString *> *values = @{
+                @"itemFrameMapCulling": @"true", @"useItemFrameLOD": @"true", @"itemFrameLODRange": @"128",
+                @"useItemFrame3FaceCulling": @"true", @"signTextCulling": @"true", @"rainCulling": @"true",
+                @"beaconBeamCulling": @"true"
+            };
+            NSMutableString *result = [text mutableCopy];
+            int n = 0;
+            for (NSString *key in values) {
+                NSString *pattern = [NSString stringWithFormat:@"(?m)^(\\s*%@\\s*=\\s*)[^\\r\\n#]+", key];
+                NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:pattern options:0 error:nil];
+                NSString *template = [NSString stringWithFormat:@"$1%@", values[key]];
+                n += (int)[re replaceMatchesInString:result options:0 range:NSMakeRange(0, result.length) withTemplate:template];
+            }
+            if ([result writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil]) {
+                setPrefBool(@"internal.coco_pending_moreculling", NO);
+                NSLog(@"[CocoLauncher] MoreCulling: %d values set", n);
+            }
+        }
     }
 }
 

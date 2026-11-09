@@ -284,9 +284,10 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     margv[++margc] = cocoSmallDevice ? "-XX:MaxDirectMemorySize=384M" : "-XX:MaxDirectMemorySize=512M";
     margv[++margc] = "-XX:+UseStringDeduplication";
     if (cocoSmallDevice) {
-        margv[++margc] = "-XX:ReservedCodeCacheSize=192m";
         margv[++margc] = "-XX:CICompilerCount=2";
     }
+    // Soft-referenced caches (textures, models) are let go sooner when the heap is tight
+    margv[++margc] = "-XX:SoftRefLRUPolicyMSPerMB=250";
     // GC lines in latestlog.txt show how full the heap gets before iOS steps in
     margv[++margc] = "-verbose:gc";
     margv[++margc] = [NSString stringWithFormat:@"-Djava.library.path=%@/Frameworks", NSBundle.mainBundle.bundlePath].UTF8String;
@@ -326,6 +327,23 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     // On iOS 26, use mirror mapped JIT by default
     if (@available(iOS 26.0, *)) {
         margv[++margc] = "-XX:+MirrorMappedCodeCache";
+        // CocoLauncher: StikDebug maps 64 MB for the mirrored JIT region; a larger
+        // code cache can crash at random once it grows past it (seen on iOS 27 +
+        // Java 21 + MC 1.21.1, idea from Prisma). "CodeCache is full" in the log
+        // means the JIT stopped and this needs revisiting.
+        margv[++margc] = "-XX:ReservedCodeCacheSize=64m";
+        margv[++margc] = "-XX:InitialCodeCacheSize=48m";
+        margv[++margc] = "-XX:CodeCacheExpansionSize=8m";
+    } else if (CocoDeviceMemoryMB() < 7000) {
+        margv[++margc] = "-XX:ReservedCodeCacheSize=192m";
+    }
+    // CocoLauncher: on 8 GB devices G1 gives committed heap back after a GC, so
+    // the footprint iOS counts goes down again after loading peaks
+    if (CocoDeviceMemoryMB() >= 7000) {
+        margv[++margc] = "-XX:+UseG1GC";
+        margv[++margc] = "-XX:MinHeapFreeRatio=5";
+        margv[++margc] = "-XX:MaxHeapFreeRatio=15";
+        margv[++margc] = "-XX:G1MaxNewSizePercent=40";
     }
 
     // Disable Forge 1.16.x early progress window
