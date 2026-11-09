@@ -12,6 +12,7 @@
 #include "utils.h"
 
 #import "ios_uikit_bridge.h"
+#import "CocoMemoryGuard.h"
 #import "CocoPerformance.h"
 #import "JavaLauncher.h"
 #import "LauncherPreferences.h"
@@ -440,6 +441,8 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         return -2;
     }
 
+    // CocoLauncher: footprint watch + relief near the iOS memory limit
+    CocoMemoryGuardStart();
     NSLog(@"[Init] Calling JLI_Launch");
 
     // Cr4shed known issue: exit after crash dump,
