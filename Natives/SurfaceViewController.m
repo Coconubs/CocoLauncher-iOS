@@ -858,6 +858,10 @@ static GameSurfaceView* pojavWindow;
     CallbackBridge_nativeSendKey(GLFW_KEY_ENTER, 0, 1, 0);
     CallbackBridge_nativeSendKey(GLFW_KEY_ENTER, 0, 0, 0);
     textField.text = @" ";
+    // CocoLauncher: Enter sends the chat line and Minecraft closes the chat, so
+    // close the keyboard too; the game slides back and the Chat/Keyboard buttons
+    // (pushed off the top while typing) can be tapped again.
+    [textField resignFirstResponder];
     return YES;
 }
 
