@@ -256,8 +256,7 @@ static GameSurfaceView* pojavWindow;
     }
 
     [self.rootView addSubview:self.inputTextField];
-    // CocoLauncher: show what is being typed just above the on-screen keyboard,
-    // which otherwise covers Minecraft's chat line
+    // CocoLauncher: keep Minecraft's chat line visible above the on-screen keyboard
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(cocoKeyboardWillChange:)
         name:UIKeyboardWillChangeFrameNotification object:nil];
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(cocoKeyboardWillChange:)
@@ -827,21 +826,22 @@ static GameSurfaceView* pojavWindow;
 #pragma mark - Input view stuff
 
 - (void)cocoKeyboardWillChange:(NSNotification *)notification {
-    CGFloat width = self.view.bounds.size.width;
-    CGRect hidden = CGRectMake(0, -32.0, width, 30.0);
-    if ([notification.name isEqualToString:UIKeyboardWillHideNotification]) {
-        self.inputTextField.frame = hidden;
-        return;
+    // Slide the whole game up by the part the on-screen keyboard covers, so
+    // Minecraft's own chat line and its command suggestions stay visible.
+    CGFloat shift = 0;
+    if (![notification.name isEqualToString:UIKeyboardWillHideNotification]) {
+        CGRect end = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+        CGRect local = [self.view convertRect:end fromCoordinateSpace:UIScreen.mainScreen.coordinateSpace];
+        CGFloat height = self.view.bounds.size.height;
+        // Hardware keyboard: only a small bar (or nothing) covers the game
+        if (local.size.height >= 80 && local.origin.y < height) {
+            shift = MIN(height - local.origin.y, height * 0.75);
+        }
     }
-    CGRect end = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-    CGRect local = [self.rootView convertRect:end fromCoordinateSpace:UIScreen.mainScreen.coordinateSpace];
-    CGFloat height = self.view.bounds.size.height;
-    // Hardware keyboard (no on-screen keyboard covering the game): keep it hidden
-    if (local.size.height < 80 || local.origin.y >= height || local.origin.y < 40) {
-        self.inputTextField.frame = hidden;
-        return;
-    }
-    self.inputTextField.frame = CGRectMake(0, local.origin.y - 36.0, width, 34.0);
+    double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:duration animations:^{
+        self.rootView.transform = shift > 0 ? CGAffineTransformMakeTranslation(0, -shift) : CGAffineTransformIdentity;
+    }];
 }
 
 -(BOOL)textFieldShouldReturn:(UITextField *)textField {

@@ -35,8 +35,10 @@ int CocoProcessMemoryLimitMB(void) {
 
 int CocoNativeOverheadMB(void) {
     // Metaspace + code cache of ~125 Fabric mods, LWJGL/OpenAL natives, the GL
-    // driver and texture atlases. Measured on Android builds of the same pack.
-    return CocoDeviceMemoryMB() >= 7000 ? 1400 : 1200;
+    // driver, texture atlases of ~30 resource packs and Pokemon models. An
+    // iPhone 15 Pro Max (limit 6143 MB) with a 4096 MB heap was killed by iOS
+    // about a minute after joining Coco, so keep about 2.3 GB outside the heap.
+    return CocoDeviceMemoryMB() >= 7000 ? 2300 : 1800;
 }
 
 int CocoSafeMaxHeapMB(void) {
@@ -161,6 +163,13 @@ void CocoMigrateSettings(void) {
     // Version 3: on-screen mouse pointer on by default (tap = click at the pointer)
     if (version < 3) {
         setPrefBool(@"control.virtmouse_enable", YES);
+    }
+    // Version 4: a heap above the safe maximum (iOS kills the game in the world)
+    // goes back to the recommended value
+    if (version < 4) {
+        if (!CocoLacksMemoryEntitlement() && getPrefInt(@"java.allocated_memory") > CocoSafeMaxHeapMB()) {
+            setPrefObject(@"java.allocated_memory", @(CocoRecommendedHeapMB()));
+        }
     }
     setPrefObject(@"internal.coco_settings_version", @(COCO_SETTINGS_VERSION));
 }

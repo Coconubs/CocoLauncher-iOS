@@ -11,7 +11,7 @@
 #define COCO_PRESET_CUSTOM   @"custom"
 
 // Bump when the defaults change in a way that should be re-applied once.
-#define COCO_SETTINGS_VERSION 3
+#define COCO_SETTINGS_VERSION 4
 
 // Java heap needed by the Coco pack: below the minimum CHOI is refused,
 // 3.8-4 GB plays smoothly.
