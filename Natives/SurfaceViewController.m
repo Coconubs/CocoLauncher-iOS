@@ -436,7 +436,7 @@ static GameSurfaceView* pojavWindow;
         // offline UUID, user type "legacy", no token; Microsoft: keychain token.
         NSLog(@"[CocoLaunch] %@", [CocoLaunchContext contextForAccountData:BaseAuthenticator.current.authData].logDescription);
         launchJVM(
-            BaseAuthenticator.current.authData[@"username"],
+            BaseAuthenticator.current.authData[CocoAccountStorageIdKey] ?: BaseAuthenticator.current.authData[@"username"],
             self.metadata,
             windowWidth, windowHeight,
             minVersion

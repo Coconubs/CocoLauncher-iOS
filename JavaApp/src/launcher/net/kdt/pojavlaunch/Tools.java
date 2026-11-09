@@ -101,8 +101,9 @@ public final class Tools {
         // CocoLauncher: Microsoft accounts (xuid, keychain token) are "msa" so the
         // game uses its online user API; Local accounts are "legacy": offline
         // user API, no Yggdrasil/Microsoft calls with a placeholder token.
-        boolean microsoft = profile.xuid != null && !profile.xuid.equals("0") && !profile.xuid.isEmpty();
-        varArgMap.put("user_type", microsoft ? "msa" : "legacy");
+        // (Minecraft 1.21.1: Main defaults --userType to "legacy"; the client only
+        // creates an online UserApiService when the type is MSA.)
+        varArgMap.put("user_type", profile.isLocal() ? "legacy" : "msa");
         varArgMap.put("version_name", versionName);
         varArgMap.put("version_type", versionInfo.type);
         varArgMap.put("natives_directory", System.getProperty("java.library.path"));

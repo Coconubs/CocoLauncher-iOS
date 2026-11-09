@@ -10,6 +10,12 @@ public class MinecraftAccount
     public String profileId = "00000000-0000-0000-0000-000000000000"; // authenticate UUID
     public String username = "Steve";
     public String xuid;
+    // CocoLauncher: "local" for Local accounts (nickname + offline UUID)
+    public String type;
+
+    public boolean isLocal() {
+        return "local".equals(type) || xuid == null || xuid.isEmpty() || "0".equals(xuid);
+    }
     
     public String save(String outPath) throws IOException {
         Tools.write(outPath, Tools.GLOBAL_GSON.toJson(this));
@@ -22,8 +28,12 @@ public class MinecraftAccount
     
     public static MinecraftAccount parse(String content) throws JsonSyntaxException {
         MinecraftAccount account = Tools.GLOBAL_GSON.fromJson(content, MinecraftAccount.class);
-        // Read access token from keychain
-        if (account.xuid != null) {
+        // Read access token from keychain (Microsoft accounts only; a Local
+        // account never touches the keychain, even if an old file had an xuid)
+        if ("local".equals(account.type)) {
+            account.xuid = null;
+            account.accessToken = "0";
+        } else if (account.xuid != null) {
             account.accessToken = getAccessTokenFromKeychain(account.xuid);
         }
         return account;

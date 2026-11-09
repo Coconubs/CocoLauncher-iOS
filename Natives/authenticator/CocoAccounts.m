@@ -1,13 +1,15 @@
 #import <CommonCrypto/CommonDigest.h>
 #import "CocoAccounts.h"
 
-static NSDictionary *CocoReadJSONObject(NSString *path) {
+NSString *const CocoAccountStorageIdKey = @"storageId";
+
+static NSMutableDictionary *CocoReadJSONObject(NSString *path) {
     NSData *data = [NSData dataWithContentsOfFile:path];
     if (data == nil) {
         return nil;
     }
     id json = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-    return [json isKindOfClass:NSDictionary.class] ? json : nil;
+    return [json isKindOfClass:NSMutableDictionary.class] ? json : nil;
 }
 
 static BOOL CocoWriteJSONObject(NSDictionary *object, NSString *path) {
@@ -23,6 +25,15 @@ static BOOL CocoWriteJSONObject(NSDictionary *object, NSString *path) {
 static BOOL CocoIsNonEmptyString(id value) {
     return [value isKindOfClass:NSString.class] && [value length] > 0;
 }
+
+static BOOL CocoIsMicrosoftKind(CocoAccountKind kind) {
+    return kind == CocoAccountKindMicrosoft || kind == CocoAccountKindMicrosoftDemo;
+}
+
+@interface CocoAccountProvider ()
++ (NSString *)pathForId:(NSString *)storageId inHome:(NSString *)home;
++ (NSString *)microsoftIdOfAccountData:(NSDictionary *)data;
+@end
 
 #pragma mark - CocoAccountProvider
 
@@ -46,8 +57,9 @@ static BOOL CocoIsNonEmptyString(id value) {
     }
     // Upstream files have no "type": Microsoft accounts always carry an
     // expiry time and an xuid, Local accounts carry neither.
-    BOOL microsoft = [data[@"expiresAt"] longValue] != 0 || CocoIsNonEmptyString(data[@"xuid"]) ||
-        CocoIsNonEmptyString(data[@"xboxGamertag"]);
+    id expiresAt = data[@"expiresAt"];
+    BOOL hasExpiry = [expiresAt isKindOfClass:NSNumber.class] && [expiresAt longValue] != 0;
+    BOOL microsoft = hasExpiry || CocoIsNonEmptyString(data[@"xuid"]) || CocoIsNonEmptyString(data[@"xboxGamertag"]);
     if (!microsoft) {
         return CocoAccountKindLocal;
     }
@@ -63,27 +75,170 @@ static BOOL CocoIsNonEmptyString(id value) {
     }
 }
 
-+ (NSDictionary *)savedAccountNamed:(NSString *)name inHome:(NSString *)home {
-    if (!CocoIsNonEmptyString(name) || [name containsString:@"/"]) {
-        return nil;
++ (NSString *)microsoftIdOfAccountData:(NSDictionary *)data {
+    if (CocoIsNonEmptyString(data[@"xuid"])) {
+        return data[@"xuid"];
     }
-    NSString *path = [[self accountsDirectoryInHome:home] stringByAppendingPathComponent:[name stringByAppendingPathExtension:@"json"]];
-    return CocoReadJSONObject(path);
+    NSString *profileId = data[@"profileId"];
+    if (CocoIsNonEmptyString(profileId) && ![profileId isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
+        return profileId;
+    }
+    return nil;
 }
 
-+ (NSArray<NSDictionary *> *)savedAccountsInHome:(NSString *)home {
++ (NSString *)storageIdForAccountData:(NSDictionary *)data {
+    CocoAccountKind kind = [self kindOfAccountData:data];
+    if (kind == CocoAccountKindLocal) {
+        return [@"local-" stringByAppendingString:[CocoLocalAccountProvider offlineUUIDForName:data[@"username"]]];
+    }
+    if (CocoIsMicrosoftKind(kind)) {
+        NSString *accountId = [self microsoftIdOfAccountData:data];
+        return accountId ? [@"msa-" stringByAppendingString:accountId] : nil;
+    }
+    return nil;
+}
+
++ (BOOL)accountData:(NSDictionary *)a isSameAccountAs:(NSDictionary *)b {
+    CocoAccountKind ka = [self kindOfAccountData:a], kb = [self kindOfAccountData:b];
+    if (ka == CocoAccountKindLocal && kb == CocoAccountKindLocal) {
+        // The offline UUID comes from the exact nickname
+        return [a[@"username"] isEqualToString:b[@"username"]];
+    }
+    if (CocoIsMicrosoftKind(ka) && CocoIsMicrosoftKind(kb)) {
+        NSString *ida = [self microsoftIdOfAccountData:a], *idb = [self microsoftIdOfAccountData:b];
+        return ida != nil && [ida isEqualToString:idb];
+    }
+    return NO;
+}
+
++ (BOOL)isSafeStorageId:(NSString *)storageId {
+    return CocoIsNonEmptyString(storageId) && ![storageId hasPrefix:@"."] &&
+        [storageId rangeOfString:@"/"].location == NSNotFound &&
+        [storageId rangeOfString:@"\\"].location == NSNotFound;
+}
+
++ (NSString *)pathForId:(NSString *)storageId inHome:(NSString *)home {
+    return [[self accountsDirectoryInHome:home] stringByAppendingPathComponent:[storageId stringByAppendingPathExtension:@"json"]];
+}
+
++ (NSMutableDictionary *)savedAccountWithId:(NSString *)storageId inHome:(NSString *)home {
+    if (![self isSafeStorageId:storageId]) {
+        return nil;
+    }
+    NSMutableDictionary *data = CocoReadJSONObject([self pathForId:storageId inHome:home]);
+    if (data == nil) {
+        return nil;
+    }
+    data[CocoAccountStorageIdKey] = storageId;
+    return data;
+}
+
++ (NSArray<NSMutableDictionary *> *)savedAccountsInHome:(NSString *)home {
     NSString *dir = [self accountsDirectoryInHome:home];
+    NSArray *files = [[NSFileManager.defaultManager contentsOfDirectoryAtPath:dir error:nil]
+        sortedArrayUsingSelector:@selector(compare:)];
     NSMutableArray *accounts = [NSMutableArray new];
-    for (NSString *file in [NSFileManager.defaultManager contentsOfDirectoryAtPath:dir error:nil]) {
+    for (NSString *file in files) {
         if (![file.pathExtension isEqualToString:@"json"]) {
             continue;
         }
-        NSDictionary *json = CocoReadJSONObject([dir stringByAppendingPathComponent:file]);
-        if ([self kindOfAccountData:json] != CocoAccountKindNone) {
-            [accounts addObject:json];
+        NSMutableDictionary *data = [self savedAccountWithId:file.stringByDeletingPathExtension inHome:home];
+        if ([self kindOfAccountData:data] != CocoAccountKindNone) {
+            [accounts addObject:data];
         }
     }
     return accounts;
+}
+
++ (NSArray<NSMutableDictionary *> *)savedAccountsNamed:(NSString *)name kind:(CocoAccountKind)kind inHome:(NSString *)home {
+    NSMutableArray *result = [NSMutableArray new];
+    if (!CocoIsNonEmptyString(name)) {
+        return result;
+    }
+    for (NSMutableDictionary *data in [self savedAccountsInHome:home]) {
+        if (![data[@"username"] isEqualToString:name]) {
+            continue;
+        }
+        if (kind == CocoAccountKindNone || [self kindOfAccountData:data] == kind) {
+            [result addObject:data];
+        }
+    }
+    return result;
+}
+
++ (NSString *)saveAccountData:(NSMutableDictionary *)data inHome:(NSString *)home
+    previousIds:(NSArray<NSString *> *)previousIds error:(NSString **)error {
+    NSString *storageId = [self storageIdForAccountData:data];
+    if (![self isSafeStorageId:storageId]) {
+        if (error) *error = @"no_account_id";
+        return nil;
+    }
+    NSMutableDictionary *content = data.mutableCopy;
+    [content removeObjectsForKeys:@[CocoAccountStorageIdKey, @"input", @"oldusername"]];
+
+    // Never overwrite a file that holds another account
+    NSDictionary *existing = [self savedAccountWithId:storageId inHome:home];
+    if (existing != nil && ![self accountData:existing isSameAccountAs:content]) {
+        if (error) *error = @"storage_conflict";
+        return nil;
+    }
+    if (!CocoWriteJSONObject(content, [self pathForId:storageId inHome:home])) {
+        if (error) *error = @"write_failed";
+        return nil;
+    }
+    // Move older copies of the SAME account to the new name; anything else stays
+    NSMutableSet *checked = [NSMutableSet setWithObject:storageId];
+    for (NSString *oldId in previousIds) {
+        if (![oldId isKindOfClass:NSString.class] || [checked containsObject:oldId] || ![self isSafeStorageId:oldId]) {
+            continue;
+        }
+        [checked addObject:oldId];
+        NSDictionary *old = [self savedAccountWithId:oldId inHome:home];
+        if (old != nil && [self accountData:old isSameAccountAs:content]) {
+            [NSFileManager.defaultManager removeItemAtPath:[self pathForId:oldId inHome:home] error:nil];
+        }
+    }
+    data[CocoAccountStorageIdKey] = storageId;
+    return storageId;
+}
+
++ (BOOL)removeAccountWithId:(NSString *)storageId inHome:(NSString *)home {
+    if (![self isSafeStorageId:storageId]) {
+        return NO;
+    }
+    return [NSFileManager.defaultManager removeItemAtPath:[self pathForId:storageId inHome:home] error:nil];
+}
+
++ (NSString *)storageIdForPlayName:(NSString *)name preferredId:(NSString *)preferredId inHome:(NSString *)home {
+    NSDictionary *preferred = [self savedAccountWithId:preferredId inHome:home];
+    if ([preferred[@"username"] isEqual:name]) {
+        return preferredId;
+    }
+    NSArray *locals = [self savedAccountsNamed:name kind:CocoAccountKindLocal inHome:home];
+    if (locals.count > 0) {
+        return locals.firstObject[CocoAccountStorageIdKey];
+    }
+    NSArray *microsoft = [self savedAccountsNamed:name kind:CocoAccountKindMicrosoft inHome:home];
+    if (microsoft.count > 0) {
+        return microsoft.firstObject[CocoAccountStorageIdKey];
+    }
+    return nil;
+}
+
++ (NSString *)resolveSelectedId:(NSString *)selected inHome:(NSString *)home {
+    if (!CocoIsNonEmptyString(selected)) {
+        return nil;
+    }
+    if ([self savedAccountWithId:selected inHome:home] != nil) {
+        return selected;
+    }
+    for (NSNumber *kind in @[@(CocoAccountKindLocal), @(CocoAccountKindMicrosoft), @(CocoAccountKindMicrosoftDemo)]) {
+        NSArray *found = [self savedAccountsNamed:selected kind:(CocoAccountKind)kind.integerValue inHome:home];
+        if (found.count > 0) {
+            return found.firstObject[CocoAccountStorageIdKey];
+        }
+    }
+    return nil;
 }
 
 @end
@@ -117,30 +272,24 @@ static BOOL CocoIsNonEmptyString(id value) {
 }
 
 + (NSMutableDictionary *)accountDataForName:(NSString *)name {
-    return @{
-        @"type": @"local",
-        @"username": name,
-        @"profileId": [self offlineUUIDForName:name]
-    }.mutableCopy;
+    NSMutableDictionary *data = [NSMutableDictionary new];
+    data[@"type"] = @"local";
+    data[@"username"] = name;
+    data[@"profileId"] = [self offlineUUIDForName:name];
+    return data;
 }
 
-+ (NSDictionary *)createAccountNamed:(NSString *)name inHome:(NSString *)home error:(NSString **)error {
++ (NSMutableDictionary *)createAccountNamed:(NSString *)name inHome:(NSString *)home error:(NSString **)error {
     if (![self isValidName:name]) {
         if (error) *error = @"invalid_name";
         return nil;
     }
-    NSDictionary *existing = [CocoAccountProvider savedAccountNamed:name inHome:home];
-    if (existing != nil) {
-        if ([CocoAccountProvider kindOfAccountData:existing] == CocoAccountKindLocal) {
-            return existing;
-        }
-        if (error) *error = @"exists_microsoft";
-        return nil;
+    NSArray *existing = [CocoAccountProvider savedAccountsNamed:name kind:CocoAccountKindLocal inHome:home];
+    if (existing.count > 0) {
+        return existing.firstObject;
     }
     NSMutableDictionary *data = [self accountDataForName:name];
-    NSString *path = [[CocoAccountProvider accountsDirectoryInHome:home] stringByAppendingPathComponent:[name stringByAppendingPathExtension:@"json"]];
-    if (!CocoWriteJSONObject(data, path)) {
-        if (error) *error = @"write_failed";
+    if ([CocoAccountProvider saveAccountData:data inHome:home previousIds:nil error:error] == nil) {
         return nil;
     }
     return data;
@@ -152,7 +301,10 @@ static BOOL CocoIsNonEmptyString(id value) {
 
 @interface CocoLaunchContext ()
 @property(nonatomic, readwrite) CocoAccountKind kind;
-@property(nonatomic, readwrite, copy) NSString *username, *uuid, *userType;
+@property(nonatomic, readwrite, copy) NSString *storageId;
+@property(nonatomic, readwrite, copy) NSString *username;
+@property(nonatomic, readwrite, copy) NSString *uuid;
+@property(nonatomic, readwrite, copy) NSString *userType;
 @property(nonatomic, readwrite) BOOL usesMicrosoftSession;
 @end
 
@@ -165,6 +317,7 @@ static BOOL CocoIsNonEmptyString(id value) {
     }
     CocoLaunchContext *context = [CocoLaunchContext new];
     context.kind = kind;
+    context.storageId = data[CocoAccountStorageIdKey];
     NSString *username = data[@"username"];
     if ([username hasPrefix:@"Demo."]) {
         username = [username substringFromIndex:5];
@@ -184,8 +337,8 @@ static BOOL CocoIsNonEmptyString(id value) {
 }
 
 - (NSString *)logDescription {
-    return [NSString stringWithFormat:@"account=%@ kind=%@ uuid=%@ userType=%@ microsoftSession=%@",
-        self.username, [CocoAccountProvider nameForKind:self.kind], self.uuid, self.userType,
+    return [NSString stringWithFormat:@"account=%@ storage=%@ kind=%@ uuid=%@ userType=%@ microsoftSession=%@",
+        self.username, self.storageId ?: @"-", [CocoAccountProvider nameForKind:self.kind], self.uuid, self.userType,
         self.usesMicrosoftSession ? @"yes" : @"none"];
 }
 
@@ -240,19 +393,39 @@ static BOOL CocoIsNonEmptyString(id value) {
 @implementation CocoAccountSelfTest
 
 + (NSDictionary *)result:(BOOL)pass detail:(NSString *)detail {
-    return @{@"pass": @(pass), @"detail": detail ?: @""};
+    return @{@"status": pass ? @"PASS" : @"FAIL", @"detail": detail ?: @""};
+}
+
++ (NSString *)freshHome {
+    NSString *home = [NSTemporaryDirectory() stringByAppendingPathComponent:
+        [@"coco-selftest-" stringByAppendingString:NSUUID.UUID.UUIDString]];
+    [NSFileManager.defaultManager createDirectoryAtPath:home withIntermediateDirectories:YES attributes:nil error:nil];
+    return home;
+}
+
++ (BOOL)fileExists:(NSString *)storageId inHome:(NSString *)home {
+    return [NSFileManager.defaultManager fileExistsAtPath:[CocoAccountProvider pathForId:storageId inHome:home]];
+}
+
++ (NSMutableDictionary *)microsoftDataNamed:(NSString *)name xuid:(NSString *)xuid {
+    NSMutableDictionary *ms = [NSMutableDictionary new];
+    ms[@"username"] = name;
+    ms[@"xuid"] = xuid;
+    ms[@"xboxGamertag"] = [name stringByAppendingString:@"GT"];
+    ms[@"profileId"] = @"11111111-2222-3333-4444-555555555555";
+    ms[@"expiresAt"] = @((long)NSDate.date.timeIntervalSince1970 + 86400);
+    return ms;
 }
 
 + (NSDictionary *)runWritingResultsTo:(NSString *)realHome {
     NSMutableDictionary *results = [NSMutableDictionary new];
     NSFileManager *fm = NSFileManager.defaultManager;
-    NSString *home = [NSTemporaryDirectory() stringByAppendingPathComponent:
-        [@"coco-selftest-" stringByAppendingString:NSUUID.UUID.UUIDString]];
-    [fm createDirectoryAtPath:home withIntermediateDirectories:YES attributes:nil error:nil];
+    NSString *home = [self freshHome];
 
     NSString *name = @"CocoTester";
     NSString *expectedUUID = @"b31d9215-fe62-3224-ae9d-fda1d68f9e9b";
     NSString *steveUUID = @"5627dd98-e6be-3c21-b8a8-e92344183641"; // known vanilla value
+    NSString *localId = [@"local-" stringByAppendingString:expectedUUID];
     NSArray *msFields = @[@"accessToken", @"msaRefreshToken", @"xuid", @"xboxGamertag", @"expiresAt"];
 
     // LOCAL-01: fresh install, no Microsoft account -> Local account created
@@ -263,83 +436,132 @@ static BOOL CocoIsNonEmptyString(id value) {
         NSDictionary *created = [CocoLocalAccountProvider createAccountNamed:name inHome:home error:&error];
         BOOL noMicrosoftFields = YES;
         for (NSString *key in msFields) {
-            noMicrosoftFields &= created[key] == nil;
+            noMicrosoftFields = noMicrosoftFields && created[key] == nil;
         }
         BOOL invalidRejected = [CocoLocalAccountProvider createAccountNamed:@"ab" inHome:home error:nil] == nil &&
             [CocoLocalAccountProvider createAccountNamed:@"Tên_có_dấu" inHome:home error:nil] == nil &&
             [CocoLocalAccountProvider createAccountNamed:@"abcdefghijklmnopq" inHome:home error:nil] == nil;
         BOOL pass = fresh && created != nil && [created[@"profileId"] isEqualToString:expectedUUID] &&
+            [created[CocoAccountStorageIdKey] isEqualToString:localId] && [self fileExists:localId inHome:home] &&
             [CocoAccountProvider kindOfAccountData:created] == CocoAccountKindLocal && noMicrosoftFields && invalidRejected;
         results[@"LOCAL-01"] = [self result:pass detail:[NSString stringWithFormat:
-            @"fresh=%d created=%@ uuid=%@ noMicrosoftFields=%d invalidNamesRejected=%d error=%@",
-            fresh, created[@"username"], created[@"profileId"], noMicrosoftFields, invalidRejected, error]];
+            @"fresh=%d created=%@ storage=%@ uuid=%@ noMicrosoftFields=%d invalidNamesRejected=%d error=%@",
+            fresh, created[@"username"], created[CocoAccountStorageIdKey], created[@"profileId"], noMicrosoftFields, invalidRejected, error]];
     }
 
     // LOCAL-02: no Microsoft token -> the Local account is read back from disk
     {
-        NSDictionary *reloaded = [CocoAccountProvider savedAccountNamed:name inHome:home];
+        NSDictionary *reloaded = [CocoAccountProvider savedAccountWithId:localId inHome:home];
+        NSString *fromOldPref = [CocoAccountProvider resolveSelectedId:name inHome:home];
+        NSDictionary *again = [CocoLocalAccountProvider createAccountNamed:name inHome:home error:nil];
         BOOL pass = reloaded != nil && [reloaded[@"username"] isEqualToString:name] &&
             [reloaded[@"profileId"] isEqualToString:expectedUUID] &&
             [CocoAccountProvider kindOfAccountData:reloaded] == CocoAccountKindLocal &&
-            reloaded[@"accessToken"] == nil;
+            reloaded[@"accessToken"] == nil && reloaded[CocoAccountStorageIdKey] != nil &&
+            [fromOldPref isEqualToString:localId] && [again[CocoAccountStorageIdKey] isEqualToString:localId] &&
+            [CocoAccountProvider savedAccountsInHome:home].count == 1;
         results[@"LOCAL-02"] = [self result:pass detail:[NSString stringWithFormat:
-            @"reloaded=%@ uuid=%@ (app restart is checked by the simulator workflow)", reloaded[@"username"], reloaded[@"profileId"]]];
+            @"reloaded=%@ uuid=%@ oldUsernameSelection->%@ recreateReturnsSame=%@ (app restart: simulator workflow)",
+            reloaded[@"username"], reloaded[@"profileId"], fromOldPref, again[CocoAccountStorageIdKey]]];
     }
 
     // LOCAL-03: no Xbox session -> launch context has the Local name/UUID
     {
-        CocoLaunchContext *ctx = [CocoLaunchContext contextForAccountData:[CocoAccountProvider savedAccountNamed:name inHome:home]];
+        CocoLaunchContext *ctx = [CocoLaunchContext contextForAccountData:[CocoAccountProvider savedAccountWithId:localId inHome:home]];
         NSString *steve = [CocoLocalAccountProvider offlineUUIDForName:@"Steve"];
         BOOL pass = ctx != nil && [ctx.username isEqualToString:name] && [ctx.uuid isEqualToString:expectedUUID] &&
-            [ctx.userType isEqualToString:@"legacy"] && !ctx.usesMicrosoftSession && [steve isEqualToString:steveUUID];
+            [ctx.userType isEqualToString:@"legacy"] && !ctx.usesMicrosoftSession && [ctx.storageId isEqualToString:localId] &&
+            [steve isEqualToString:steveUUID];
         results[@"LOCAL-03"] = [self result:pass detail:[NSString stringWithFormat:@"%@ steveVector=%@", ctx.logDescription, steve]];
     }
 
-    // LOCAL-04: Microsoft + Local side by side, no shared session
-    NSString *msName = @"OwnerMS";
+    // LOCAL-04: Microsoft + Local with the SAME nickname, separate files and sessions
+    NSString *msId = @"msa-2535400000000000";
     {
-        NSDictionary *ms = @{
-            @"username": msName, @"xuid": @"2535400000000000", @"xboxGamertag": @"OwnerGT",
-            @"profileId": @"11111111-2222-3333-4444-555555555555",
-            @"expiresAt": @((long)NSDate.date.timeIntervalSince1970 + 86400)
-        };
-        CocoWriteJSONObject(ms, [[CocoAccountProvider accountsDirectoryInHome:home] stringByAppendingPathComponent:@"OwnerMS.json"]);
-        NSDictionary *local = [CocoAccountProvider savedAccountNamed:name inHome:home];
+        NSMutableDictionary *ms = [self microsoftDataNamed:name xuid:@"2535400000000000"];
+        NSString *saveError = nil;
+        // Older builds would have written both to accounts/CocoTester.json
+        NSString *saved = [CocoAccountProvider saveAccountData:ms inHome:home previousIds:@[name] error:&saveError];
+        NSDictionary *local = [CocoAccountProvider savedAccountWithId:localId inHome:home];
+        NSDictionary *msBack = [CocoAccountProvider savedAccountWithId:msId inHome:home];
         CocoLaunchContext *localCtx = [CocoLaunchContext contextForAccountData:local];
-        CocoLaunchContext *msCtx = [CocoLaunchContext contextForAccountData:[CocoAccountProvider savedAccountNamed:msName inHome:home]];
-        BOOL localClean = local[@"xuid"] == nil && local[@"accessToken"] == nil && local[@"xboxGamertag"] == nil;
-        NSString *clashError = nil;
-        BOOL clashRefused = [CocoLocalAccountProvider createAccountNamed:msName inHome:home error:&clashError] == nil &&
-            [clashError isEqualToString:@"exists_microsoft"];
-        BOOL msUntouched = [CocoAccountProvider kindOfAccountData:[CocoAccountProvider savedAccountNamed:msName inHome:home]] == CocoAccountKindMicrosoft;
-        BOOL pass = localClean && !localCtx.usesMicrosoftSession && msCtx.usesMicrosoftSession &&
+        CocoLaunchContext *msCtx = [CocoLaunchContext contextForAccountData:msBack];
+        BOOL localClean = local[@"xuid"] == nil && local[@"accessToken"] == nil && local[@"xboxGamertag"] == nil &&
+            [local[@"profileId"] isEqualToString:expectedUUID];
+        BOOL msIntact = [msBack[@"xuid"] isEqualToString:@"2535400000000000"] &&
+            [msBack[@"profileId"] isEqualToString:@"11111111-2222-3333-4444-555555555555"];
+        NSString *playDefault = [CocoAccountProvider storageIdForPlayName:name preferredId:nil inHome:home];
+        NSString *playPreferred = [CocoAccountProvider storageIdForPlayName:name preferredId:msId inHome:home];
+        BOOL pass = [saved isEqualToString:msId] && localClean && msIntact &&
+            !localCtx.usesMicrosoftSession && msCtx.usesMicrosoftSession &&
             ![localCtx.uuid isEqualToString:msCtx.uuid] && [msCtx.userType isEqualToString:@"msa"] &&
-            clashRefused && msUntouched && [CocoAccountProvider savedAccountsInHome:home].count == 2;
+            [CocoAccountProvider savedAccountsNamed:name kind:CocoAccountKindNone inHome:home].count == 2 &&
+            [playDefault isEqualToString:localId] && [playPreferred isEqualToString:msId];
         results[@"LOCAL-04"] = [self result:pass detail:[NSString stringWithFormat:
-            @"local={%@} ms={%@} localClean=%d sameNameRefused=%d msUntouched=%d",
-            localCtx.logDescription, msCtx.logDescription, localClean, clashRefused, msUntouched]];
+            @"sameNickname: local={%@} ms={%@} localClean=%d msIntact=%d playDefault=%@ playWhenMSSelected=%@ error=%@",
+            localCtx.logDescription, msCtx.logDescription, localClean, msIntact, playDefault, playPreferred, saveError]];
+    }
+
+    // LOCAL-04b: files from older builds (accounts/<username>.json)
+    {
+        NSString *old = [self freshHome];
+        NSString *dir = [CocoAccountProvider accountsDirectoryInHome:old];
+        // legacy Local "Same" and a Microsoft account "Same" signing in later
+        CocoWriteJSONObject(@{@"username": @"Same", @"profileId": [CocoLocalAccountProvider offlineUUIDForName:@"Same"]},
+            [dir stringByAppendingPathComponent:@"Same.json"]);
+        NSMutableDictionary *msSame = [self microsoftDataNamed:@"Same" xuid:@"111"];
+        NSString *e1 = nil;
+        NSString *msSameId = [CocoAccountProvider saveAccountData:msSame inHome:old previousIds:@[@"Same"] error:&e1];
+        BOOL legacyLocalKept = [[CocoAccountProvider savedAccountWithId:@"Same" inHome:old][@"profileId"]
+            isEqualToString:[CocoLocalAccountProvider offlineUUIDForName:@"Same"]];
+        // legacy Microsoft "Bar" saved again (token refresh) -> moved to msa-222
+        NSMutableDictionary *msBar = [self microsoftDataNamed:@"Bar" xuid:@"222"];
+        CocoWriteJSONObject(msBar, [dir stringByAppendingPathComponent:@"Bar.json"]);
+        NSMutableDictionary *barLoaded = [CocoAccountProvider savedAccountWithId:@"Bar" inHome:old];
+        NSString *barId = [CocoAccountProvider saveAccountData:barLoaded inHome:old
+            previousIds:@[barLoaded[CocoAccountStorageIdKey]] error:nil];
+        BOOL barMigrated = [barId isEqualToString:@"msa-222"] && ![self fileExists:@"Bar" inHome:old] &&
+            [self fileExists:@"msa-222" inHome:old] && [CocoAccountProvider savedAccountWithId:@"msa-222" inHome:old][CocoAccountStorageIdKey] != nil;
+        BOOL noStorageKeyInFile = [CocoReadJSONObject([dir stringByAppendingPathComponent:@"msa-222.json"]) objectForKey:CocoAccountStorageIdKey] == nil;
+        // legacy Local "Foo": creating "Foo" again returns it, no duplicate file
+        CocoWriteJSONObject(@{@"username": @"Foo", @"profileId": [CocoLocalAccountProvider offlineUUIDForName:@"Foo"]},
+            [dir stringByAppendingPathComponent:@"Foo.json"]);
+        NSDictionary *foo = [CocoLocalAccountProvider createAccountNamed:@"Foo" inHome:old error:nil];
+        BOOL fooReused = [foo[CocoAccountStorageIdKey] isEqualToString:@"Foo"];
+        // a file under the target name holding another account is never overwritten
+        CocoWriteJSONObject(@{@"type": @"local", @"username": @"Other", @"profileId": @"x"},
+            [dir stringByAppendingPathComponent:@"msa-777.json"]);
+        NSString *e2 = nil;
+        NSString *conflictId = [CocoAccountProvider saveAccountData:[self microsoftDataNamed:@"Seven" xuid:@"777"]
+            inHome:old previousIds:nil error:&e2];
+        BOOL conflictSafe = conflictId == nil && [e2 isEqualToString:@"storage_conflict"] &&
+            [[CocoAccountProvider savedAccountWithId:@"msa-777" inHome:old][@"username"] isEqualToString:@"Other"];
+        BOOL pass = [msSameId isEqualToString:@"msa-111"] && legacyLocalKept && barMigrated && noStorageKeyInFile &&
+            fooReused && conflictSafe;
+        results[@"LOCAL-04b"] = [self result:pass detail:[NSString stringWithFormat:
+            @"msSameNickname=%@ legacyLocalKept=%d legacyMicrosoftMigrated=%d noRuntimeKeyInFile=%d legacyLocalReused=%d conflictRefused=%d (%@ %@)",
+            msSameId, legacyLocalKept, barMigrated, noStorageKeyInFile, fooReused, conflictSafe, e1, e2]];
+        [fm removeItemAtPath:old error:nil];
     }
 
     // LOCAL-05: switching back and forth keeps the Local UUID
     {
         NSMutableSet *uuids = [NSMutableSet new];
         for (int i = 0; i < 6; i++) {
-            NSString *selected = (i % 2 == 0) ? name : msName;
-            CocoLaunchContext *ctx = [CocoLaunchContext contextForAccountData:[CocoAccountProvider savedAccountNamed:selected inHome:home]];
+            NSString *selected = (i % 2 == 0) ? localId : msId;
+            CocoLaunchContext *ctx = [CocoLaunchContext contextForAccountData:[CocoAccountProvider savedAccountWithId:selected inHome:home]];
             if (ctx.kind == CocoAccountKindLocal) {
                 [uuids addObject:ctx.uuid];
             }
         }
-        NSDictionary *again = [CocoLocalAccountProvider createAccountNamed:name inHome:home error:nil];
-        BOOL pass = uuids.count == 1 && [uuids.anyObject isEqualToString:expectedUUID] &&
-            [again[@"profileId"] isEqualToString:expectedUUID];
+        BOOL pass = uuids.count == 1 && [uuids.anyObject isEqualToString:expectedUUID];
         results[@"LOCAL-05"] = [self result:pass detail:[NSString stringWithFormat:@"distinctLocalUUIDs=%lu value=%@",
             (unsigned long)uuids.count, uuids.anyObject]];
     }
 
     // LOCAL-06: the shared installer's download rule with a Local account selected
     {
-        NSDictionary *local = [CocoAccountProvider savedAccountNamed:name inHome:home];
+        NSDictionary *local = [CocoAccountProvider savedAccountWithId:localId inHome:home];
         BOOL officialOK =
             [CocoMinecraftEntitlement isOfficialMinecraftURL:@"https://piston-data.mojang.com/v1/objects/x/client.jar"] &&
             [CocoMinecraftEntitlement isOfficialMinecraftURL:@"https://piston-meta.mojang.com/v1/packages/x/1.21.1.json"] &&
@@ -350,17 +572,16 @@ static BOOL CocoIsNonEmptyString(id value) {
             ![CocoMinecraftEntitlement isOfficialMinecraftURL:@"https://github.com/Coconubs/cocolauncher-pack/releases/download/ios-pack/manifest.json"] &&
             ![CocoMinecraftEntitlement isOfficialMinecraftURL:@"https://notmojang.com.example.org/a.jar"] &&
             ![CocoMinecraftEntitlement isOfficialMinecraftURL:@"https://evilmojang.com/a.jar"];
-        // Owner verified on this device: allowed while the Local account stays selected
         BOOL allowedWithOwner = [CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:local inHome:home];
-        // Fresh device without an owner: blocked (reported by the installer), Local still usable
-        NSString *bare = [home stringByAppendingPathComponent:@"bare"];
+        NSString *bare = [self freshHome];
         [CocoLocalAccountProvider createAccountNamed:name inHome:bare error:nil];
-        BOOL blockedWithoutOwner = ![CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:
-            [CocoAccountProvider savedAccountNamed:name inHome:bare] inHome:bare];
-        // A Microsoft account that doesn't own the game is not an owner
+        NSDictionary *bareLocal = [CocoAccountProvider savedAccountsNamed:name kind:CocoAccountKindLocal inHome:bare].firstObject;
+        BOOL blockedWithoutOwner = bareLocal != nil &&
+            ![CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:bareLocal inHome:bare];
         CocoWriteJSONObject(@{@"username": @"Demo.NoGame", @"xuid": @"1", @"xboxGamertag": @"NoGame", @"expiresAt": @(1)},
-            [[CocoAccountProvider accountsDirectoryInHome:bare] stringByAppendingPathComponent:@"Demo.NoGame.json"]);
+            [[CocoAccountProvider accountsDirectoryInHome:bare] stringByAppendingPathComponent:@"msa-1.json"]);
         BOOL demoIsNotOwner = [CocoMinecraftEntitlement verifiedOwnerInHome:bare] == nil;
+        [fm removeItemAtPath:bare error:nil];
         BOOL pass = officialOK && otherOK && allowedWithOwner && blockedWithoutOwner && demoIsNotOwner;
         results[@"LOCAL-06"] = [self result:pass detail:[NSString stringWithFormat:
             @"officialHosts=%d nonOfficialHosts=%d allowedWithVerifiedOwner=%d blockedOnBareDevice=%d demoNotOwner=%d",
@@ -371,11 +592,11 @@ static BOOL CocoIsNonEmptyString(id value) {
 
     NSUInteger passed = 0;
     for (NSDictionary *r in results.allValues) {
-        passed += [r[@"pass"] boolValue];
+        passed += [r[@"status"] isEqualToString:@"PASS"] ? 1 : 0;
     }
     NSLog(@"[CocoSelfTest] %lu/%lu passed", (unsigned long)passed, (unsigned long)results.count);
     for (NSString *key in [results.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
-        NSLog(@"[CocoSelfTest] %@ %@ %@", key, [results[key][@"pass"] boolValue] ? @"PASS" : @"FAIL", results[key][@"detail"]);
+        NSLog(@"[CocoSelfTest] %@ %@ %@", key, results[key][@"status"], results[key][@"detail"]);
     }
     if (realHome.length > 0) {
         CocoWriteJSONObject(results, [realHome stringByAppendingPathComponent:@"coco-selftest.json"]);

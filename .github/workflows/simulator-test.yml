@@ -1,12 +1,18 @@
 name: Simulator smoke test
 
 # Builds an iOS Simulator copy of the app (PLATFORM=7, same Makefile path as
-# the upstream "iossimulator" build), starts it on a simulator and saves a
-# screenshot, the launcher log and the files the Coco setup creates.
-# It does not press Play: the game itself needs JIT and a Microsoft account
-# that owns Minecraft, which a simulator run cannot provide.
-# Report only: whether the app starts is written to the job summary and the
-# artifact; it does not fail the run.
+# the upstream "iossimulator" build), starts it on a clean simulator with no
+# Microsoft account, and checks:
+#   - the account/installer self-tests (LOCAL-01..06, LOCAL-04b, INSTALL-01..04)
+#   - a Local account pressing CHOI once: Java, Fabric and the Coco pack are
+#     prepared without Microsoft; Mojang files are reported as blocked
+#     (no owner verified on the runner), with the reason (LOCAL-06, LOCAL-07)
+#   - close/reopen and CHOI again: same Local account, nothing valid is
+#     downloaded again (LOCAL-02, LOCAL-10)
+# The game itself is not started (needs JIT and the Mojang files).
+# Run by hand only (workflow_dispatch). Every verdict step fails the job when a
+# check fails; only the setup steps are allowed to continue so that all
+# verdicts and logs are still collected.
 
 on:
   workflow_dispatch:
@@ -83,7 +89,7 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
           xcrun simctl list devices booted
 
-      - name: Install and start CocoLauncher
+      - name: Install and start CocoLauncher (clean device, no Microsoft account)
         continue-on-error: true
         env:
           UDID: ${{ steps.sim.outputs.udid }}
@@ -91,85 +97,56 @@ jobs:
           set -uo pipefail
           mkdir -p out
           xcrun simctl install "$UDID" artifacts/Payload/AngelAuraAmethyst.app
-          # Clean device, no Microsoft account: the home screen creates the Local account
-          # "CocoTester" from this name, through the same path as a typed name.
+          # The home screen creates the Local account "CocoTester" from this name
+          # (same path as a typed name), runs the self-tests and presses CHOI once.
           xcrun simctl spawn "$UDID" defaults write "$BUNDLE_ID" cocoDemoName CocoTester
-          # Account layer self-test LOCAL-01..06 (temporary empty home, not the player's data)
           xcrun simctl spawn "$UDID" defaults write "$BUNDLE_ID" cocoSelfTest -bool YES
+          xcrun simctl spawn "$UDID" defaults write "$BUNDLE_ID" cocoAutoPlay -bool YES
           xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1 | tee out/launch.txt
-          sleep 60
-          xcrun simctl io "$UDID" screenshot out/screen-60s.png
-          sleep 30
-          xcrun simctl io "$UDID" screenshot out/screen-90s.png
-          (xcrun simctl spawn "$UDID" launchctl list | grep -i cocolauncher || echo "app process not found") | tee out/process.txt
-          if grep -q "app process not found" out/process.txt; then
-            RESULT="CocoLauncher is NOT running on the simulator after 90 s (see system-log.txt in the artifact)"
-          else
-            RESULT="CocoLauncher is running on the simulator after 90 s"
-          fi
-          echo "$RESULT" | tee out/result.txt
-          echo "### Simulator smoke test: $RESULT" >> "$GITHUB_STEP_SUMMARY"
+          DOCS="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)/Documents"
+          # Wait for the first installer run (Fabric + Coco pack download) to finish
+          for i in $(seq 1 120); do
+            [ -f "$DOCS/coco-install-report.json" ] && break
+            sleep 10
+          done
+          xcrun simctl io "$UDID" screenshot out/screen-run1.png
+          cp "$DOCS/coco-install-report.json" out/install-report-run1.json 2>/dev/null || echo "no install report after 20 min" | tee out/install-run1-missing.txt
+          cp "$DOCS/coco-selftest.json" out/ 2>/dev/null || true
 
-      - name: Local account (first run, no Microsoft) and reload after restart
+      - name: Verdict - self-tests
+        if: always()
+        run: set -o pipefail; python3 .github/scripts/coco_sim_checks.py selftest out/coco-selftest.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Verdict - first Play (LOCAL-06, LOCAL-07)
+        if: always()
+        run: set -o pipefail; python3 .github/scripts/coco_sim_checks.py install1 out/install-report-run1.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Close and reopen, Play again
+        if: always()
         continue-on-error: true
         env:
           UDID: ${{ steps.sim.outputs.udid }}
         run: |
           set -uo pipefail
-          mkdir -p out
           DOCS="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)/Documents"
-          EXPECTED="$(python3 -c 'import hashlib,uuid; h=bytearray(hashlib.md5(b"OfflinePlayer:CocoTester").digest()); h[6]=(h[6]&0x0f)|0x30; h[8]=(h[8]&0x3f)|0x80; print(uuid.UUID(bytes=bytes(h)))')"
-          check() {
-            F="$DOCS/accounts/CocoTester.json"
-            if [ ! -f "$F" ]; then echo "FAIL ($1): $F missing"; ls -la "$DOCS/accounts" 2>&1; return 1; fi
-            python3 - "$F" "$EXPECTED" "$1" <<'PY'
-          import json, sys
-          data = json.load(open(sys.argv[1]))
-          ok = data.get("username") == "CocoTester" and data.get("profileId") == sys.argv[2] \
-              and "xboxGamertag" not in data and not data.get("accessToken")
-          print(("PASS" if ok else "FAIL") + " (%s): username=%s profileId=%s expected=%s msa_fields=%s" % (
-              sys.argv[3], data.get("username"), data.get("profileId"), sys.argv[2],
-              [k for k in ("xboxGamertag", "accessToken", "msaRefreshToken") if k in data]))
-          sys.exit(0 if ok else 1)
-          PY
-          }
-          R1="$(check 'first run')"; echo "$R1" | tee out/local-account.txt
-          # Restart without the sample name: the saved account must still be there
+          BEFORE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("finishedAt",0))' out/install-report-run1.json 2>/dev/null || echo 0)"
           xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          # No sample name this time: the saved player name and account must be reused
           xcrun simctl spawn "$UDID" defaults delete "$BUNDLE_ID" cocoDemoName || true
+          xcrun simctl spawn "$UDID" defaults write "$BUNDLE_ID" cocoSelfTest -bool NO
           xcrun simctl launch "$UDID" "$BUNDLE_ID" > /dev/null 2>&1
-          sleep 30
-          xcrun simctl io "$UDID" screenshot out/screen-after-restart.png
-          R2="$(check 'after restart')"; echo "$R2" | tee -a out/local-account.txt
-          ls "$DOCS/accounts" | tee -a out/local-account.txt
-          {
-            echo "### Local account"
-            echo "- $R1"
-            echo "- $R2"
-          } >> "$GITHUB_STEP_SUMMARY"
+          for i in $(seq 1 60); do
+            NOW="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("finishedAt",0))' "$DOCS/coco-install-report.json" 2>/dev/null || echo 0)"
+            [ "$NOW" != "$BEFORE" ] && break
+            sleep 5
+          done
+          xcrun simctl io "$UDID" screenshot out/screen-run2.png
+          cp "$DOCS/coco-install-report.json" out/install-report-run2.json 2>/dev/null || true
+          mkdir -p out/Documents && cp -R "$DOCS/accounts" out/Documents/ 2>/dev/null || true
 
-      - name: Account layer self-test (LOCAL-01..06)
-        continue-on-error: true
-        env:
-          UDID: ${{ steps.sim.outputs.udid }}
-        run: |
-          set -uo pipefail
-          mkdir -p out
-          DOCS="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)/Documents"
-          F="$DOCS/coco-selftest.json"
-          if [ ! -f "$F" ]; then
-            echo "### Account self-test: coco-selftest.json missing" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          cp "$F" out/
-          python3 - "$F" <<'PY' | tee out/selftest.txt >> "$GITHUB_STEP_SUMMARY"
-          import json, sys
-          data = json.load(open(sys.argv[1]))
-          print("### Account self-test")
-          for key in sorted(data):
-              r = data[key]
-              print("- %s **%s** %s" % (key, "PASS" if r.get("pass") else "FAIL", r.get("detail", "")))
-          PY
+      - name: Verdict - reopen (LOCAL-02 restart, LOCAL-10)
+        if: always()
+        run: set -o pipefail; python3 .github/scripts/coco_sim_checks.py install2 out/install-report-run1.json out/install-report-run2.json out/Documents | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Collect logs and Coco files
         if: always()

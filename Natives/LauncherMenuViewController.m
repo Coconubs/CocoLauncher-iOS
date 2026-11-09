@@ -248,7 +248,7 @@
         }
     };
     vc.whenItemSelected = ^void() {
-        setPrefObject(@"internal.selected_account", BaseAuthenticator.current.authData[@"username"]);
+        setPrefObject(@"internal.selected_account", BaseAuthenticator.current.authData[@"storageId"] ?: BaseAuthenticator.current.authData[@"username"]);
         [self updateAccountInfo];
         if (sender != self.accountButton) {
             // Called from the play button, so call back to continue

@@ -1,6 +1,7 @@
 #import <AuthenticationServices/AuthenticationServices.h>
 
 #import "authenticator/BaseAuthenticator.h"
+#import "authenticator/CocoAccounts.h"
 #import "AccountListViewController.h"
 #import "AFNetworking.h"
 #import "LauncherPreferences.h"
@@ -26,18 +27,8 @@
         [self.accountList removeAllObjects];
     }
 
-    // List accounts
-    NSString *listPath = [NSString stringWithFormat:@"%s/accounts", getenv("AME_HOME")];
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSArray *files = [fm contentsOfDirectoryAtPath:listPath error:nil];
-    for(NSString *file in files) {
-        NSString *path = [listPath stringByAppendingPathComponent:file];
-        BOOL isDir = NO;
-        [fm fileExistsAtPath:path isDirectory:(&isDir)];
-        if(!isDir && [file hasSuffix:@".json"]) {
-            [self.accountList addObject:parseJSONFromFile(path)];
-        }
-    }
+    // List accounts (CocoLauncher: each row carries its storage id)
+    [self.accountList addObjectsFromArray:[CocoAccountProvider savedAccountsInHome:nil]];
 
     [self.tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLine];
 }
@@ -99,24 +90,24 @@
             [self callbackMicrosoftAuth:status success:success forCell:cell];
         });
     };
-    [[BaseAuthenticator loadSavedName:self.accountList[indexPath.row][@"username"]] refreshTokenWithCallback:callback];
+    [[BaseAuthenticator loadSavedName:self.accountList[indexPath.row][CocoAccountStorageIdKey]] refreshTokenWithCallback:callback];
 }
 
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
     if (editingStyle == UITableViewCellEditingStyleDelete) {
         // TODO: invalidate token
 
-        NSString *str = self.accountList[indexPath.row][@"username"];
-        NSFileManager *fm = [NSFileManager defaultManager];
-        NSString *path = [NSString stringWithFormat:@"%s/accounts/%@.json", getenv("AME_HOME"), str];
+        // CocoLauncher: removes only this account's own file (and its own token)
+        NSDictionary *account = self.accountList[indexPath.row];
+        NSString *storageId = account[CocoAccountStorageIdKey];
         if (self.whenDelete != nil) {
-            self.whenDelete(str);
+            self.whenDelete(storageId);
         }
-        NSString *xuid = self.accountList[indexPath.row][@"xuid"];
-        if (xuid) {
+        NSString *xuid = account[@"xuid"];
+        if (xuid && [CocoAccountProvider kindOfAccountData:account] != CocoAccountKindLocal) {
             [MicrosoftAuthenticator clearTokenDataOfProfile:xuid];
         }
-        [fm removeItemAtPath:path error:nil];
+        [CocoAccountProvider removeAccountWithId:storageId inHome:nil];
         [self.accountList removeObjectAtIndex:indexPath.row];
         [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
     }
@@ -179,12 +170,13 @@
         UITextField *usernameField = controller.textFields[0];
         NSString *name = [usernameField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
         usernameField.text = name;
-        NSString *accountPath = [NSString stringWithFormat:@"%s/accounts/%@.json", getenv("AME_HOME"), name];
         // Minecraft player names: 3-16 characters, A-Z, a-z, 0-9 and _
-        if ([name rangeOfString:@"^[A-Za-z0-9_]{3,16}$" options:NSRegularExpressionSearch].location == NSNotFound) {
+        if (![CocoLocalAccountProvider isValidName:name]) {
             controller.message = localize(@"coco.account.error.name_chars", nil);
             [self presentViewController:controller animated:YES completion:nil];
-        } else if ([NSFileManager.defaultManager fileExistsAtPath:accountPath]) {
+        } else if ([CocoAccountProvider savedAccountsNamed:name kind:CocoAccountKindLocal inHome:nil].count > 0) {
+            // Only another LOCAL account with this name is a duplicate; a Microsoft
+            // account with the same nickname is a separate account in its own file.
             controller.message = localize(@"coco.account.error.exists", nil);
             [self presentViewController:controller animated:YES completion:nil];
         } else {

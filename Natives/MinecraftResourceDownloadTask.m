@@ -5,6 +5,7 @@
 #import "installer/modpack/ModpackAPI.h"
 #import "AFNetworking.h"
 #import "CocoConfig.h"
+#import "CocoInstall.h"
 #import "LauncherNavigationController.h"
 #import "LauncherPreferences.h"
 #import "MinecraftResourceDownloadTask.h"
@@ -13,31 +14,37 @@
 #import "ios_uikit_bridge.h"
 #import "utils.h"
 
+// CocoLauncher: one file to download (any group, any account type)
+@interface CocoDownloadItem : NSObject
+@property(nonatomic, copy) NSString *url, *sha, *name, *path;
+@property(nonatomic) NSUInteger size;
+@property(nonatomic) CocoInstallGroup group;
+@property(nonatomic) BOOL strictSHA; // always verify SHA-1 (Coco pack), ignoring general.check_sha
+@property(nonatomic) NSUInteger attempt;
+@property(nonatomic) NSProgress *fileProgress;
+@property(nonatomic, copy) void (^success)(void);
+@property(nonatomic, copy) void (^failure)(NSString *reason);
+@end
+
+@implementation CocoDownloadItem
+@end
+
 @interface MinecraftResourceDownloadTask ()
 @property AFURLSessionManager* manager;
 // CocoLauncher: Coco pack sync state
 @property NSInteger cocoRemaining;
 @property NSDictionary *cocoManifest;
-// CocoLauncher: official Minecraft files (Mojang servers) that could not be
-// downloaded because no account that owns the game was verified on this device
+// CocoLauncher: shared installer state
+@property CocoInstallReport *cocoReport;
+@property dispatch_group_t cocoGroup;      // only set by downloadVersion
 @property BOOL cocoOfficialAllowed;
-@property NSMutableArray<NSString *> *cocoBlockedOfficial;
 @property BOOL cocoFinished;
+@property NSMutableSet<NSString *> *cocoHandledPaths; // loader libraries already queued
 @end
 
 // CocoLauncher: SHA-1 of a file without reading it all into memory at once
 static NSString *CocoSHA1OfFile(NSString *path) {
-    NSData *data = [NSData dataWithContentsOfFile:path options:NSDataReadingMappedIfSafe error:nil];
-    if (data == nil) {
-        return nil;
-    }
-    unsigned char digest[CC_SHA1_DIGEST_LENGTH];
-    CC_SHA1(data.bytes, (CC_LONG)data.length, digest);
-    NSMutableString *hex = [NSMutableString stringWithCapacity:CC_SHA1_DIGEST_LENGTH * 2];
-    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
-        [hex appendFormat:@"%02x", digest[i]];
-    }
-    return hex;
+    return [CocoSafeFile sha1OfFile:path];
 }
 
 @implementation MinecraftResourceDownloadTask
@@ -57,70 +64,195 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     return self;
 }
 
-// Add file to the queue
-- (NSURLSessionDownloadTask *)createDownloadTask:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha altName:(NSString *)altName toPath:(NSString *)path success:(void (^)())success {
-    BOOL fileExists = [NSFileManager.defaultManager fileExistsAtPath:path];
-    // logSuccess?
-    if (fileExists && [self checkSHA:sha forFile:path altName:altName]) {
-        if (success) success();
+#pragma mark - CocoLauncher: shared downloader
+
+// Every file goes through here. A file that is already present and passes its
+// checksum is not downloaded again. Official Minecraft files (Mojang servers)
+// are only downloaded when cocoOfficialAllowed; otherwise they are recorded as
+// blocked, with the reason, and nothing else is stopped. Downloads go to
+// "<file>.part", are retried (with HTTP Range resume data when the server
+// allows it), verified, and only then moved over the real file.
+- (NSURLSessionDownloadTask *)cocoDownload:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha name:(NSString *)name
+    path:(NSString *)path library:(BOOL)library success:(void (^)(void))success failure:(void (^)(NSString *reason))failure {
+    CocoDownloadItem *item = [CocoDownloadItem new];
+    item.url = url;
+    item.size = size;
+    item.sha = sha;
+    item.name = name ?: path.lastPathComponent;
+    item.path = path;
+    BOOL official = [CocoMinecraftEntitlement isOfficialMinecraftURL:url];
+    item.group = [CocoInstallReport groupForURL:url name:item.name isLibrary:library official:official];
+    item.success = success;
+    item.failure = failure;
+    return [self cocoStartDownload:item];
+}
+
+- (BOOL)cocoFileIsValid:(CocoDownloadItem *)item atPath:(NSString *)path {
+    if (![NSFileManager.defaultManager fileExistsAtPath:path]) {
+        return NO;
+    }
+    if (item.strictSHA) {
+        return [item.sha isEqualToString:CocoSHA1OfFile(path)];
+    }
+    return [self checkSHA:item.sha forFile:path altName:item.name];
+}
+
+- (void)cocoLeave {
+    dispatch_group_t group = self.cocoGroup;
+    if (group) {
+        dispatch_group_leave(group);
+    }
+}
+
+- (NSURLSessionDownloadTask *)cocoStartDownload:(CocoDownloadItem *)item {
+    if ([self cocoFileIsValid:item atPath:item.path]) {
+        [self.cocoReport recordValid:item.group];
+        if (item.success) item.success();
         return nil;
-    } else if (![self cocoMayDownloadURL:url name:(altName ?: path.lastPathComponent)]) {
+    }
+    if (!self.cocoOfficialAllowed && [CocoMinecraftEntitlement isOfficialMinecraftURL:item.url]) {
+        NSString *reason = localize(@"coco.install.reason.no_owner", nil);
+        [self.cocoReport recordBlocked:item.group name:item.name url:item.url reason:reason];
+        NSLog(@"[MCDL] Blocked %@ <%@>: %@", item.name, item.url, reason);
+        if (item.failure) item.failure(reason);
+        return nil;
+    }
+    if (item.url.length == 0 || [NSURL URLWithString:item.url] == nil) {
+        NSString *reason = @"no download URL";
+        [self.cocoReport recordFailed:item.group name:item.name url:item.url reason:reason];
+        if (item.failure) item.failure(reason);
+        if (self.cocoGroup == nil) {
+            [self finishDownloadWithErrorString:[NSString stringWithFormat:localize(@"launcher.mcl.error_download", NULL), item.name, reason]];
+        }
         return nil;
     }
 
-    NSString *name = altName ?: path.lastPathComponent;
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
-    __block NSProgress *progress;
-    __block NSURLSessionDownloadTask *task = [self.manager downloadTaskWithRequest:request progress:nil
-    destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-        NSLog(@"[MCDL] Downloading %@", name);
-        progress = [self.manager downloadProgressForTask:task];
-        if (!size && task) {
-            [self addDownloadTaskToProgress:task size:response.expectedContentLength];
-            [self.fileList addObject:name];
-        }
-        [NSFileManager.defaultManager createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
-        [NSFileManager.defaultManager removeItemAtPath:path error:nil];
-        return [NSURL fileURLWithPath:path];
-    } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-        if (self.progress.cancelled) {
-            // Ignore any further errors
-        } else if (error != nil) {
-            [self finishDownloadWithError:error file:name];
-        } else if (![self checkSHA:sha forFile:path altName:altName]) {
-            [self finishDownloadWithErrorString:[NSString stringWithFormat:@"Failed to verify file %@: SHA1 mismatch", path.lastPathComponent]];
-        } else {
-            progress.totalUnitCount = progress.completedUnitCount;
-            if (success) success();
-        }
-    }];
-
-    if (size && task) {
-        [self addDownloadTaskToProgress:task size:size];
-        [self.fileList addObject:name];
+    [self.cocoReport recordQueued:item.group url:item.url];
+    item.attempt = 1;
+    int64_t units = item.size > 0 ? (int64_t)item.size : 1;
+    item.fileProgress = [NSProgress progressWithTotalUnitCount:units];
+    item.fileProgress.kind = NSProgressKindFile;
+    @synchronized (self) {
+        [self.progressList addObject:item.fileProgress];
+        [self.fileList addObject:item.name];
+        [self.progress addChild:item.fileProgress withPendingUnitCount:units];
+        self.progress.totalUnitCount += units;
+        self.textProgress.totalUnitCount = self.progress.totalUnitCount;
     }
+    if (self.cocoGroup) {
+        dispatch_group_enter(self.cocoGroup);
+    }
+    return [self cocoTaskForItem:item resumeData:nil];
+}
 
+- (NSURLSessionDownloadTask *)cocoTaskForItem:(CocoDownloadItem *)item resumeData:(NSData *)resumeData {
+    NSString *partPath = [item.path stringByAppendingString:@".part"];
+    void (^progressBlock)(NSProgress *) = ^(NSProgress *downloadProgress) {
+        int64_t units = item.fileProgress.totalUnitCount;
+        int64_t done = (int64_t)(downloadProgress.fractionCompleted * units);
+        // never reach 100% before the checksum passed
+        if (done > item.fileProgress.completedUnitCount && done < units) {
+            item.fileProgress.completedUnitCount = done;
+        }
+    };
+    NSURL *(^destination)(NSURL *, NSURLResponse *) = ^NSURL *(NSURL *targetPath, NSURLResponse *response) {
+        NSLog(@"[MCDL] Downloading %@ (attempt %lu)", item.name, (unsigned long)item.attempt);
+        NSFileManager *fm = NSFileManager.defaultManager;
+        [fm createDirectoryAtPath:partPath.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
+        [fm removeItemAtPath:partPath error:nil];
+        return [NSURL fileURLWithPath:partPath];
+    };
+    void (^completion)(NSURLResponse *, NSURL *, NSError *) = ^(NSURLResponse *response, NSURL *filePath, NSError *error) {
+        [self cocoItem:item finishedWithResponse:response error:error partPath:partPath];
+    };
+    NSURLSessionDownloadTask *task = nil;
+    if (resumeData != nil) {
+        task = [self.manager downloadTaskWithResumeData:resumeData progress:progressBlock destination:destination completionHandler:completion];
+    }
+    if (task == nil) {
+        NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:item.url]];
+        task = [self.manager downloadTaskWithRequest:request progress:progressBlock destination:destination completionHandler:completion];
+    }
     return task;
+}
+
+- (void)cocoItem:(CocoDownloadItem *)item finishedWithResponse:(NSURLResponse *)response error:(NSError *)error partPath:(NSString *)partPath {
+    NSFileManager *fm = NSFileManager.defaultManager;
+    if (self.progress.cancelled || self.cocoFinished) {
+        [fm removeItemAtPath:partPath error:nil];
+        [self cocoLeave];
+        return;
+    }
+    NSInteger status = [response isKindOfClass:NSHTTPURLResponse.class] ? ((NSHTTPURLResponse *)response).statusCode : 0;
+    NSError *failure = error;
+    if (failure == nil && status >= 400) {
+        failure = [NSError errorWithDomain:@"CocoHTTP" code:status userInfo:nil];
+    }
+    if (failure == nil && ![self cocoFileIsValid:item atPath:partPath]) {
+        NSString *actual = CocoSHA1OfFile(partPath) ?: @"-";
+        failure = [NSError errorWithDomain:@"CocoInstall" code:1 userInfo:@{NSLocalizedDescriptionKey:
+            [NSString stringWithFormat:@"checksum mismatch: expected %@, got %@", item.sha.length > 0 ? item.sha : @"-", actual]}];
+    }
+    if (failure != nil) {
+        [fm removeItemAtPath:partPath error:nil];
+        NSString *reason = [failure.domain isEqualToString:@"CocoInstall"] ? failure.localizedDescription
+            : [CocoDownloadPolicy describeError:failure httpStatus:status];
+        NSData *resumeData = [failure.domain isEqualToString:NSURLErrorDomain] ? failure.userInfo[NSURLSessionDownloadTaskResumeData] : nil;
+        if ([CocoDownloadPolicy shouldRetryError:failure httpStatus:status attempt:item.attempt]) {
+            item.attempt++;
+            [self.cocoReport recordRetry:item.group name:item.name reason:reason resumed:resumeData != nil];
+            NSLog(@"[MCDL] Retry %lu/%lu for %@ <%@>: %@%@", (unsigned long)item.attempt, (unsigned long)[CocoDownloadPolicy maxAttempts],
+                item.name, item.url, reason, resumeData ? @" (resuming with HTTP Range)" : @"");
+            double delay = [CocoDownloadPolicy delayBeforeAttempt:item.attempt];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                if (self.progress.cancelled || self.cocoFinished) {
+                    [self cocoLeave];
+                    return;
+                }
+                [[self cocoTaskForItem:item resumeData:resumeData] resume];
+            });
+            return;
+        }
+        NSLog(@"[MCDL] Failed %@ <%@>: %@", item.name, item.url, reason);
+        [self.cocoReport recordFailed:item.group name:item.name url:item.url reason:reason];
+        if (item.failure) item.failure(reason);
+        if (self.cocoGroup == nil) {
+            [self finishDownloadWithErrorString:[NSString stringWithFormat:localize(@"launcher.mcl.error_download", NULL), item.name, reason]];
+        }
+        [self cocoLeave];
+        return;
+    }
+    NSString *installError = nil;
+    if (![CocoSafeFile installFile:partPath atPath:item.path error:&installError]) {
+        NSLog(@"[MCDL] Failed to install %@: %@", item.name, installError);
+        [self.cocoReport recordFailed:item.group name:item.name url:item.url reason:installError];
+        if (item.failure) item.failure(installError);
+        if (self.cocoGroup == nil) {
+            [self finishDownloadWithErrorString:[NSString stringWithFormat:localize(@"launcher.mcl.error_download", NULL), item.name, installError]];
+        }
+        [self cocoLeave];
+        return;
+    }
+    item.fileProgress.completedUnitCount = item.fileProgress.totalUnitCount;
+    [self.cocoReport recordDownloaded:item.group];
+    if (item.success) item.success();
+    [self cocoLeave];
+}
+
+// Add file to the queue (upstream API, also used by the modpack installers)
+- (NSURLSessionDownloadTask *)createDownloadTask:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha altName:(NSString *)altName toPath:(NSString *)path success:(void (^)())success {
+    return [self cocoDownload:url size:size sha:sha name:altName path:path library:NO success:success failure:nil];
 }
 
 - (NSURLSessionDownloadTask *)createDownloadTask:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha altName:(NSString *)altName toPath:(NSString *)path {
     return [self createDownloadTask:url size:size sha:sha altName:altName toPath:path success:nil];
 }
 
-- (void)addDownloadTaskToProgress:(NSURLSessionDownloadTask *)task size:(NSInteger)size {
-    NSProgress *progress = [self.manager downloadProgressForTask:task];
-    NSUInteger fileSize = size>0 ? size : 1;
-    progress.kind = NSProgressKindFile;
-    if (size > 0) {
-        progress.totalUnitCount = fileSize;
-    }
-    [self.progressList addObject:progress];
-    [self.progress addChild:progress withPendingUnitCount:fileSize];
-    self.progress.totalUnitCount += fileSize;
-    self.textProgress.totalUnitCount = self.progress.totalUnitCount;
+- (void)downloadVersionMetadata:(NSDictionary *)version success:(void (^)())success {
+    [self downloadVersionMetadata:version success:success failure:nil];
 }
 
-- (void)downloadVersionMetadata:(NSDictionary *)version success:(void (^)())success {
+- (void)downloadVersionMetadata:(NSDictionary *)version success:(void (^)())success failure:(void (^)(NSString *reason))failure {
     // Download base json
     NSString *versionStr = version[@"id"];
     if ([versionStr isEqualToString:@"latest-release"]) {
@@ -170,16 +302,14 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     NSString *sha = url.stringByDeletingLastPathComponent.lastPathComponent;
     NSUInteger size = [version[@"size"] unsignedLongLongValue];
 
-    NSURLSessionDownloadTask *task = [self createDownloadTask:url size:size sha:sha altName:nil toPath:path success:completionBlock];
+    NSURLSessionDownloadTask *task = [self cocoDownload:url size:size sha:sha name:path.lastPathComponent path:path
+        library:NO success:completionBlock failure:failure];
     [task resume];
-    if (task == nil && self.cocoBlockedOfficial.count > 0) {
-        [self cocoFinishBlocked];
-    }
 }
 
 #pragma mark - Minecraft installation
 
-- (void)downloadAssetMetadataWithSuccess:(void (^)())success {
+- (void)downloadAssetMetadataWithSuccess:(void (^)())success failure:(void (^)(NSString *reason))failure {
     NSDictionary *assetIndex = self.metadata[@"assetIndex"];
     if (!assetIndex) {
         success();
@@ -190,22 +320,25 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     NSString *url = assetIndex[@"url"];
     NSString *sha = url.stringByDeletingLastPathComponent.lastPathComponent;
     NSUInteger size = [assetIndex[@"size"] unsignedLongLongValue];
-    NSURLSessionDownloadTask *task = [self createDownloadTask:url size:size sha:sha altName:name toPath:path success:^{
+    NSURLSessionDownloadTask *task = [self cocoDownload:url size:size sha:sha name:name path:path library:NO success:^{
         self.metadata[@"assetIndexObj"] = parseJSONFromFile(path);
         success();
-    }];
+    } failure:failure];
     [task resume];
-    if (task == nil && self.cocoBlockedOfficial.count > 0) {
-        [self cocoFinishBlocked];
-    }
 }
 
-- (NSArray *)downloadClientLibraries {
+// Libraries from a version JSON. markHandled: loader libraries queued before
+// the Minecraft metadata is known (so they are not queued twice later).
+- (NSArray *)cocoTasksForLibraries:(NSArray *)libraries markHandled:(BOOL)markHandled {
     NSMutableArray *tasks = [NSMutableArray new];
-    for (NSDictionary *library in self.metadata[@"libraries"]) {
+    for (NSDictionary *library in libraries) {
+        if (![library isKindOfClass:NSDictionary.class]) {
+            continue;
+        }
         NSString *name = library[@"name"];
 
         NSMutableDictionary *artifact = library[@"downloads"][@"artifact"];
+        NSUInteger size = [artifact[@"size"] unsignedLongLongValue];
         if (artifact == nil && [name containsString:@":"]) {
             NSLog(@"[MCDL] Unknown artifact object for %@, attempting to generate one", name);
             artifact = [[NSMutableDictionary alloc] init];
@@ -213,19 +346,27 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             NSArray *libParts = [name componentsSeparatedByString:@":"];
             artifact[@"path"] = [NSString stringWithFormat:@"%1$@/%2$@/%3$@/%2$@-%3$@.jar", [libParts[0] stringByReplacingOccurrencesOfString:@"." withString:@"/"], libParts[1], libParts[2]];
             artifact[@"url"] = [NSString stringWithFormat:@"%@%@", prefix, artifact[@"path"]];
-            artifact[@"sha1"] = library[@"checksums"][0];
+            // CocoLauncher: Fabric's profile JSON lists "sha1" and "size" on the library itself
+            artifact[@"sha1"] = library[@"checksums"][0] ?: library[@"sha1"];
+            size = [library[@"size"] unsignedLongLongValue];
         }
 
         NSString *path = [NSString stringWithFormat:@"%s/libraries/%@", getenv("GAME_DIR"), artifact[@"path"]];
         NSString *sha = artifact[@"sha1"];
-        NSUInteger size = [artifact[@"size"] unsignedLongLongValue];
         NSString *url = artifact[@"url"];
         if ([library[@"skip"] boolValue]) {
             NSLog(@"[MDCL] Skipped library %@", name);
             continue;
         }
+        @synchronized (self) {
+            if (markHandled) {
+                [self.cocoHandledPaths addObject:path];
+            } else if ([self.cocoHandledPaths containsObject:path]) {
+                continue;
+            }
+        }
 
-        NSURLSessionDownloadTask *task = [self createDownloadTask:url size:size sha:sha altName:name toPath:path success:nil];
+        NSURLSessionDownloadTask *task = [self cocoDownload:url size:size sha:sha name:name path:path library:YES success:nil failure:nil];
         if (task) {
             [tasks addObject:task];
         } else if (self.progress.cancelled) {
@@ -233,6 +374,29 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         }
     }
     return tasks;
+}
+
+- (NSArray *)downloadClientLibraries {
+    return [self cocoTasksForLibraries:self.metadata[@"libraries"] markHandled:NO];
+}
+
+// Loader (Fabric) libraries straight from the local version JSON: they don't
+// depend on Mojang's metadata, so they are prepared even if it is missing.
+- (NSArray *)cocoLoaderLibraryTasksForVersion:(NSDictionary *)version {
+    NSString *versionId = version[@"id"];
+    if (![versionId isKindOfClass:NSString.class] || versionId.length == 0) {
+        return @[];
+    }
+    NSString *path = [NSString stringWithFormat:@"%1$s/versions/%2$@/%2$@.json", getenv("GAME_DIR"), versionId];
+    if (![NSFileManager.defaultManager fileExistsAtPath:path]) {
+        return @[];
+    }
+    NSMutableDictionary *json = parseJSONFromFile(path);
+    if (json[@"NSErrorObject"] || json[@"inheritsFrom"] == nil || ![json[@"libraries"] isKindOfClass:NSArray.class]) {
+        return @[];
+    }
+    [MinecraftResourceUtils tweakVersionJson:json];
+    return [self cocoTasksForLibraries:json[@"libraries"] markHandled:YES];
 }
 
 - (NSArray *)downloadClientAssets {
@@ -264,7 +428,7 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         }
 
         NSString *url = [NSString stringWithFormat:@"https://resources.download.minecraft.net/%@", pathname];
-        NSURLSessionDownloadTask *task = [self createDownloadTask:url size:size sha:hash altName:name toPath:path success:nil];
+        NSURLSessionDownloadTask *task = [self cocoDownload:url size:size sha:hash name:name path:path library:NO success:nil failure:nil];
         if (task) {
             [tasks addObject:task];
         } else if (self.progress.cancelled) {
@@ -274,48 +438,74 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     return tasks;
 }
 
+// CocoLauncher: Java is bundled with the app; it is checked, not downloaded
+- (void)cocoCheckJavaRuntime {
+    if (![self cocoIsCocoProfile]) {
+        return;
+    }
+    NSString *javaHome = getSelectedJavaHome(@"1_17_newer", 21);
+    if (javaHome.length > 0) {
+        [self.cocoReport recordValid:CocoInstallGroupJava];
+        [self.cocoReport setDetail:javaHome.lastPathComponent forGroup:CocoInstallGroupJava];
+    } else {
+        [self.cocoReport markGroup:CocoInstallGroupJava failedWithReason:localize(@"coco.install.reason.no_java", nil)];
+    }
+}
+
+// CocoLauncher: independent resource groups. Fabric libraries, the Coco pack and
+// the Minecraft files are prepared side by side; a blocked or failed group is
+// reported with its reason when every download has finished, and never stops
+// the others. The game only starts when every group is ready.
 - (void)downloadVersion:(NSDictionary *)version {
     [self prepareForDownload];
-    [self downloadVersionMetadata:version success:^{
-        [self downloadAssetMetadataWithSuccess:^{
-            NSArray *libTasks = [self downloadClientLibraries];
-            NSArray *assetTasks = [self downloadClientAssets];
-            if (self.progress.cancelled) {
-                return;
-            }
-            // CocoLauncher: report the exact blocked step instead of switching accounts
-            if (self.cocoBlockedOfficial.count > 0) {
-                [self cocoFinishBlocked];
-                return;
-            }
-            // CocoLauncher: after the game files, sync the Coco pack (Coco profile only)
-            [self cocoPackTasksWithCompletion:^(NSArray *cocoTasks) {
-                // Drop the 1 byte we set initially
-                self.progress.totalUnitCount--;
-                self.textProgress.totalUnitCount--;
-                if (self.progress.totalUnitCount == 0) {
-                    // We have nothing to download, invoke completion observer
-                    self.progress.totalUnitCount = 1;
-                    self.progress.completedUnitCount = 1;
-                    self.textProgress.totalUnitCount = 1;
-                    self.textProgress.completedUnitCount = 1;
-                    return;
-                }
-                [libTasks makeObjectsPerformSelector:@selector(resume)];
-                [assetTasks makeObjectsPerformSelector:@selector(resume)];
-                [cocoTasks makeObjectsPerformSelector:@selector(resume)];
-                [self.metadata removeObjectForKey:@"assetIndexObj"];
-            }];
-        }];
+    dispatch_group_t group = dispatch_group_create();
+    self.cocoGroup = group;
+    [self cocoCheckJavaRuntime];
+
+    // 1. Loader (Fabric) libraries
+    dispatch_group_enter(group);
+    NSArray *loaderTasks = [self cocoLoaderLibraryTasksForVersion:version];
+    [loaderTasks makeObjectsPerformSelector:@selector(resume)];
+    dispatch_group_leave(group);
+
+    // 2. Coco pack (Coco profile only)
+    dispatch_group_enter(group);
+    [self cocoPackTasksWithCompletion:^(NSArray *cocoTasks) {
+        [cocoTasks makeObjectsPerformSelector:@selector(resume)];
+        dispatch_group_leave(group);
     }];
+
+    // 3. Minecraft: version metadata -> libraries, asset index -> assets
+    dispatch_group_enter(group);
+    [self downloadVersionMetadata:version success:^{
+        NSArray *libTasks = [self downloadClientLibraries];
+        [libTasks makeObjectsPerformSelector:@selector(resume)];
+        [self downloadAssetMetadataWithSuccess:^{
+            NSArray *assetTasks = [self downloadClientAssets];
+            [assetTasks makeObjectsPerformSelector:@selector(resume)];
+            [self.metadata removeObjectForKey:@"assetIndexObj"];
+            dispatch_group_leave(group);
+        } failure:^(NSString *reason) {
+            [self.cocoReport markGroup:CocoInstallGroupAssets waitingFor:CocoInstallGroupMetadata];
+            dispatch_group_leave(group);
+        }];
+    } failure:^(NSString *reason) {
+        [self.cocoReport markGroup:CocoInstallGroupLibraries waitingFor:CocoInstallGroupMetadata];
+        [self.cocoReport markGroup:CocoInstallGroupAssets waitingFor:CocoInstallGroupMetadata];
+        dispatch_group_leave(group);
+    }];
+
+    dispatch_group_notify(group, dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        [self cocoFinishInstall];
+    });
 }
 
 #pragma mark - Coco Cobblemon pack (CocoLauncher)
 
 // The Coco pack only contains Coco Cobblemon's own mods, configs and resource
-// packs (no Mojang files), so it never goes through the official-files rule
-// (cocoMayDownloadURL) and works the same for Local and Microsoft accounts.
-// It is synced from inside downloadVersion, after the Minecraft files are valid.
+// packs (no Mojang files, GitHub release URLs only), so the official-files rule
+// never applies to it and it works the same for Local and Microsoft accounts.
+// It is its own resource group in downloadVersion.
 
 - (NSString *)cocoPackDirectory {
     return [NSString stringWithFormat:@"%s/instances/%@/%@", getenv("AME_HOME"),
@@ -400,10 +590,14 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         if (manifest == nil) {
             if ([self cocoPackInstalled]) {
                 NSLog(@"[CocoPack] Could not check for pack updates (HTTP %ld, %@), using the installed pack", (long)status, error.localizedDescription);
-                completion(@[]);
+                [self.cocoReport recordValid:CocoInstallGroupCocoPack];
+                [self.cocoReport setDetail:localize(@"coco.install.detail.pack_offline", nil) forGroup:CocoInstallGroupCocoPack];
             } else {
-                [self finishDownloadWithErrorString:localize(@"coco.pack.error.manifest", nil)];
+                NSString *reason = [NSString stringWithFormat:@"%@ (HTTP %ld%@%@)", localize(@"coco.pack.error.manifest", nil), (long)status,
+                    error ? @", " : @"", error.localizedDescription ?: @""];
+                [self.cocoReport recordFailed:CocoInstallGroupCocoPack name:@"manifest.json" url:COCO_PACK_MANIFEST_URL reason:reason];
             }
+            completion(@[]);
             return;
         }
         completion([self cocoCreateTasksFromManifest:manifest]);
@@ -441,6 +635,7 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             [packMods addObject:relPath.lastPathComponent];
             // "<mod>.jar.disabled" lets a player switch off a mod (e.g. Sodium with ANGLE)
             if ([fileManager fileExistsAtPath:[path stringByAppendingString:@".disabled"]]) {
+                [self.cocoReport recordValid:CocoInstallGroupCocoPack];
                 continue;
             }
         }
@@ -448,9 +643,11 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             // "seed" files (most configs, options.txt, servers.dat) are only placed
             // once, so the player's own settings are kept
             if ([file[@"mode"] isEqual:@"seed"]) {
+                [self.cocoReport recordValid:CocoInstallGroupCocoPack];
                 continue;
             }
             if ([sha isEqualToString:CocoSHA1OfFile(path)]) {
+                [self.cocoReport recordValid:CocoInstallGroupCocoPack];
                 continue;
             }
         }
@@ -501,57 +698,31 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     }
 
     NSMutableArray *tasks = [NSMutableArray new];
-    for (NSDictionary *item in pending) {
-        NSURLSessionDownloadTask *task = [self cocoCreateDownloadTask:item[@"url"]
-            size:[item[@"size"] unsignedLongLongValue] sha:item[@"sha"] name:item[@"name"] toPath:item[@"path"]];
+    for (NSDictionary *entry in pending) {
+        CocoDownloadItem *item = [CocoDownloadItem new];
+        item.url = entry[@"url"];
+        item.size = [entry[@"size"] unsignedLongLongValue];
+        item.sha = entry[@"sha"];
+        item.name = entry[@"name"];
+        item.path = entry[@"path"];
+        item.group = CocoInstallGroupCocoPack;
+        item.strictSHA = YES;
+        item.success = ^{
+            BOOL done = NO;
+            @synchronized (self) {
+                self.cocoRemaining--;
+                done = self.cocoRemaining == 0;
+            }
+            if (done) {
+                [self cocoWriteMarker];
+            }
+        };
+        NSURLSessionDownloadTask *task = [self cocoStartDownload:item];
         if (task) {
             [tasks addObject:task];
         }
     }
     return tasks;
-}
-
-- (NSURLSessionDownloadTask *)cocoCreateDownloadTask:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha name:(NSString *)name toPath:(NSString *)path {
-    NSString *partPath = [path stringByAppendingString:@".part"];
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:url]];
-    __block NSProgress *progress;
-    __block NSURLSessionDownloadTask *task = [self.manager downloadTaskWithRequest:request progress:nil
-    destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-        NSLog(@"[CocoPack] Downloading %@", name);
-        progress = [self.manager downloadProgressForTask:task];
-        [NSFileManager.defaultManager createDirectoryAtPath:partPath.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil];
-        [NSFileManager.defaultManager removeItemAtPath:partPath error:nil];
-        return [NSURL fileURLWithPath:partPath];
-    } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-        NSFileManager *fileManager = NSFileManager.defaultManager;
-        if (self.progress.cancelled) {
-            [fileManager removeItemAtPath:partPath error:nil];
-        } else if (error != nil) {
-            [fileManager removeItemAtPath:partPath error:nil];
-            [self finishDownloadWithError:error file:name];
-        } else if (![sha isEqualToString:CocoSHA1OfFile(partPath)]) {
-            [fileManager removeItemAtPath:partPath error:nil];
-            [self finishDownloadWithErrorString:[NSString stringWithFormat:@"Failed to verify file %@: SHA1 mismatch", name]];
-        } else {
-            [fileManager removeItemAtPath:path error:nil];
-            NSError *moveError = nil;
-            if (![fileManager moveItemAtPath:partPath toPath:path error:&moveError]) {
-                [self finishDownloadWithError:moveError file:name];
-                return;
-            }
-            progress.totalUnitCount = progress.completedUnitCount;
-            self.cocoRemaining--;
-            if (self.cocoRemaining == 0) {
-                [self cocoWriteMarker];
-            }
-        }
-    }];
-
-    if (task) {
-        [self addDownloadTaskToProgress:task size:size];
-        [self.fileList addObject:name];
-    }
-    return task;
 }
 
 #pragma mark - Modpack installation
@@ -591,8 +762,11 @@ static NSString *CocoSHA1OfFile(NSString *path) {
 
     // CocoLauncher: the installer works the same for every account type
     NSDictionary *selected = BaseAuthenticator.current.authData;
-    self.cocoBlockedOfficial = [NSMutableArray new];
+    self.cocoReport = [CocoInstallReport new];
+    self.cocoGroup = nil;
+    self.cocoHandledPaths = [NSMutableSet new];
     self.cocoFinished = NO;
+    self.lastErrorReport = nil;
     self.lastErrorMessage = nil;
     self.lastErrorBlocked = NO;
     self.cocoOfficialAllowed = [CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:selected
@@ -624,42 +798,47 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     [self finishDownloadWithErrorString:errorStr];
 }
 
-#pragma mark - CocoLauncher: download rule for official Minecraft files
+#pragma mark - CocoLauncher: end of an install run
 
-// Only files from Mojang's servers need an account that owns Minecraft:
-// the selected account (Microsoft owner or demo), or a Microsoft owner
-// verified earlier on this device. Fabric, the Coco pack and Java are never
-// blocked, and the selected (Local) account is never changed.
-- (BOOL)cocoMayDownloadURL:(NSString *)url name:(NSString *)name {
-    if (self.cocoOfficialAllowed || ![CocoMinecraftEntitlement isOfficialMinecraftURL:url]) {
-        return YES;
-    }
-    @synchronized (self) {
-        [self.cocoBlockedOfficial addObject:name ?: url.lastPathComponent];
-    }
-    return NO;
+- (void)cocoWriteReportWithResult:(NSString *)result {
+    NSDictionary *selected = BaseAuthenticator.current.authData;
+    NSMutableDictionary *report = [NSMutableDictionary new];
+    report[@"finishedAt"] = @((long long)(NSDate.date.timeIntervalSince1970 * 1000));
+    report[@"result"] = result;
+    report[@"account"] = [CocoLaunchContext contextForAccountData:selected].logDescription ?: @"(none)";
+    report[@"officialFilesAllowed"] = @(self.cocoOfficialAllowed);
+    report[@"groups"] = self.cocoReport.dictionaryRepresentation;
+    saveJSONToFile(report, [[CocoAccountProvider defaultHome] stringByAppendingPathComponent:@"coco-install-report.json"]);
+    NSLog(@"[MCDL] Install result %@\n%@", result, self.cocoReport.summaryText);
 }
 
-- (NSString *)cocoBlockedSummary {
-    NSUInteger jsons = 0, jars = 0, assets = 0;
-    NSMutableArray *samples = [NSMutableArray new];
-    @synchronized (self) {
-        for (NSString *name in self.cocoBlockedOfficial) {
-            if ([name.pathExtension isEqualToString:@"json"]) {
-                jsons++;
-            } else if ([name containsString:@":"] || [name.pathExtension isEqualToString:@"jar"]) {
-                jars++;
-            } else {
-                assets++;
-            }
-            if (samples.count < 3) {
-                [samples addObject:name];
-            }
-        }
+- (void)cocoFinishInstall {
+    if (self.cocoFinished || self.progress.cancelled) {
+        return;
     }
-    return [NSString stringWithFormat:localize(@"coco.install.blocked.detail", nil),
-        (unsigned long)(jsons + jars + assets), (unsigned long)jsons, (unsigned long)jars, (unsigned long)assets,
-        [samples componentsJoinedByString:@", "]];
+    CocoInstallReport *report = self.cocoReport;
+    if (report.hasFailed || (!report.hasBlocked && !report.allReady)) {
+        [self cocoWriteReportWithResult:@"FAILED"];
+        self.lastErrorReport = report.summaryText;
+        [self finishDownloadWithErrorString:[NSString stringWithFormat:localize(@"coco.install.failed.message", nil), report.summaryText]];
+        return;
+    }
+    if (report.hasBlocked) {
+        [self cocoWriteReportWithResult:@"BLOCKED"];
+        [self cocoFinishBlocked];
+        return;
+    }
+    [self cocoWriteReportWithResult:@"READY"];
+    // Drop the 1 byte we set initially: the progress finishes and the caller launches
+    self.progress.totalUnitCount--;
+    self.textProgress.totalUnitCount--;
+    if (self.progress.totalUnitCount == 0) {
+        // We have nothing to download, invoke completion observer
+        self.progress.totalUnitCount = 1;
+        self.progress.completedUnitCount = 1;
+        self.textProgress.totalUnitCount = 1;
+        self.textProgress.completedUnitCount = 1;
+    }
 }
 
 - (void)cocoFinishBlocked {
@@ -671,11 +850,11 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     }
     NSString *account = BaseAuthenticator.current.authData[@"username"] ?: @"";
     NSString *message = [NSString stringWithFormat:localize(@"coco.install.blocked.message", nil),
-        COCO_MINECRAFT_VERSION, [self cocoBlockedSummary], account];
-    NSLog(@"[MCDL] Official Minecraft files blocked for %@: %lu file(s)", account, (unsigned long)self.cocoBlockedOfficial.count);
+        COCO_MINECRAFT_VERSION, self.cocoReport.summaryText, account];
     [self.progress cancel];
     [self.manager invalidateSessionCancelingTasks:YES resetSession:YES];
     self.lastErrorMessage = message;
+    self.lastErrorReport = self.cocoReport.summaryText;
     self.lastErrorBlocked = YES;
     if (self.handleBlocked) {
         self.handleBlocked(message);

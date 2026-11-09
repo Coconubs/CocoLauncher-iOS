@@ -136,6 +136,7 @@ add_executable(AngelAuraAmethyst
   AccountListViewController.m
   AppDelegate.m
   CocoHomeViewController.m
+  CocoInstall.m
   CocoMemoryUnlock.m
   CocoPerformance.m
   CocoSettingsViewController.m

@@ -5,6 +5,7 @@
 
 #import "authenticator/BaseAuthenticator.h"
 #import "authenticator/CocoAccounts.h"
+#import "CocoInstall.h"
 #import "CocoConfig.h"
 #import "CocoHomeViewController.h"
 #import "CocoPerformance.h"
@@ -85,6 +86,7 @@ void CocoReloadRootViewController(void) {
 @property(nonatomic) MinecraftResourceDownloadTask *task;
 @property(nonatomic) NSProgress *observedProgress;
 @property(nonatomic) NSString *playName;
+@property(nonatomic) NSString *playId; // storage id of the account being played
 @property(nonatomic) ASWebAuthenticationSession *authSession;
 @property(nonatomic) NSTimer *pingTimer;
 @property(nonatomic) BOOL didAppearOnce;
@@ -638,8 +640,7 @@ void CocoReloadRootViewController(void) {
 }
 
 - (BOOL)accountExists:(NSString *)name {
-    NSString *path = [NSString stringWithFormat:@"%s/accounts/%@.json", getenv("AME_HOME"), name];
-    return [NSFileManager.defaultManager fileExistsAtPath:path];
+    return [CocoAccountProvider savedAccountsNamed:name kind:CocoAccountKindNone inHome:nil].count > 0;
 }
 
 - (void)refreshNameNote {
@@ -840,10 +841,19 @@ void CocoReloadRootViewController(void) {
             }];
         }
     }
-    // Account layer self-test (LOCAL-01..06) for the simulator workflow; runs on
-    // a temporary empty home, results in Documents/coco-selftest.json
+    // Self-tests for the simulator workflow (account layer on temporary empty
+    // homes, installer rules); results in Documents/coco-selftest.json
     if ([defaults boolForKey:@"cocoSelfTest"]) {
-        [CocoAccountSelfTest runWritingResultsTo:[CocoAccountProvider defaultHome]];
+        NSMutableDictionary *results = [[CocoAccountSelfTest runWritingResultsTo:nil] mutableCopy];
+        [results addEntriesFromDictionary:[CocoInstallSelfTest run]];
+        saveJSONToFile(results, [[CocoAccountProvider defaultHome] stringByAppendingPathComponent:@"coco-selftest.json"]);
+    }
+    // Simulator workflow: press CHOI once, like a player (installer run, report
+    // in Documents/coco-install-report.json)
+    if ([defaults boolForKey:@"cocoAutoPlay"]) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self playTapped];
+        });
     }
     // Sample name for store/ad screenshots: saved as a Local account like a real player
     NSString *demoName = [defaults stringForKey:@"cocoDemoName"];
@@ -975,14 +985,20 @@ void CocoReloadRootViewController(void) {
 // A saved account with this name (Local or Microsoft) is used as it is; a new
 // name becomes a Local account (CocoLocalAccountProvider), no Microsoft involved.
 - (BaseAuthenticator *)accountForName:(NSString *)name {
-    if (![self accountExists:name]) {
+    // The selected account if it has this nickname, else the Local account with
+    // it, else a Microsoft account with it, else a new Local account.
+    NSString *storageId = [CocoAccountProvider storageIdForPlayName:name
+        preferredId:getPrefObject(@"internal.selected_account") inHome:nil];
+    if (storageId == nil) {
         NSString *error = nil;
-        if ([CocoLocalAccountProvider createAccountNamed:name inHome:nil error:&error] == nil) {
+        NSDictionary *created = [CocoLocalAccountProvider createAccountNamed:name inHome:nil error:&error];
+        if (created == nil) {
             NSLog(@"[CocoHome] Could not create the Local account %@: %@", name, error);
             return nil;
         }
+        storageId = created[CocoAccountStorageIdKey];
     }
-    return [BaseAuthenticator loadSavedName:name];
+    return [BaseAuthenticator loadSavedName:storageId];
 }
 
 - (BOOL)gameFilesPresent {
@@ -991,13 +1007,13 @@ void CocoReloadRootViewController(void) {
 }
 
 - (void)restorePlayAccount {
-    if (self.playName.length == 0) {
+    if (self.playId.length == 0) {
         return;
     }
-    if (![BaseAuthenticator.current.authData[@"username"] isEqualToString:self.playName]) {
-        [BaseAuthenticator loadSavedName:self.playName];
+    if (![BaseAuthenticator.current.authData[CocoAccountStorageIdKey] isEqualToString:self.playId]) {
+        [BaseAuthenticator loadSavedName:self.playId];
     }
-    setPrefObject(@"internal.selected_account", self.playName);
+    setPrefObject(@"internal.selected_account", self.playId);
 }
 
 - (void)playTapped {
@@ -1023,7 +1039,8 @@ void CocoReloadRootViewController(void) {
         return;
     }
     self.playName = name;
-    setPrefObject(@"internal.selected_account", name);
+    self.playId = account.authData[CocoAccountStorageIdKey];
+    setPrefObject(@"internal.selected_account", self.playId);
     [self refreshNameNote];
 
     // CocoLauncher: one Play path for every account type. The shared installer

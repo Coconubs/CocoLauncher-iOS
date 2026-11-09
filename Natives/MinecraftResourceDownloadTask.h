@@ -15,6 +15,8 @@
 @property BOOL quietErrors;
 @property(copy) NSString *lastErrorMessage;
 @property BOOL lastErrorBlocked;
+// CocoLauncher: one line per resource group (state, counts, source, reason)
+@property(copy) NSString *lastErrorReport;
 
 - (NSURLSessionDownloadTask *)createDownloadTask:(NSString *)url size:(NSUInteger)size sha:(NSString *)sha altName:(NSString *)altName toPath:(NSString *)path;
 - (void)finishDownloadWithErrorString:(NSString *)error;
