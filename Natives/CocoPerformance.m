@@ -219,6 +219,10 @@ void CocoMigrateSettings(void) {
         setPrefBool(@"internal.coco_pending_v9_options", YES);
         setPrefBool(@"internal.coco_pending_v9_sodium_extra", YES);
     }
+    // Version 10: Sodium Extra again with "Show FPS extended" off (FPS on, top right)
+    if (version < 10) {
+        setPrefBool(@"internal.coco_pending_v9_sodium_extra", YES);
+    }
     // Version 7: no vibration on button taps, View Bobbing off (once)
     if (version < 7) {
         setPrefBool(@"control.disable_haptics", YES);

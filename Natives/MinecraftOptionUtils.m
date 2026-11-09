@@ -139,10 +139,12 @@ static int CocoSetExisting(NSMutableDictionary *json, NSString *section, NSArray
             }
             json[@"detail_settings"][@"rain_snow"] = @NO;
             json[@"extra_settings"][@"show_fps"] = @YES;
+            // Gson LOWER_CASE_WITH_UNDERSCORES: showFPSExtended -> show_f_p_s_extended
+            json[@"extra_settings"][@"show_f_p_s_extended"] = @NO;
             json[@"extra_settings"][@"overlay_corner"] = @"TOP_RIGHT";
             if ([self cocoWriteJSON:json to:path]) {
                 setPrefBool(@"internal.coco_pending_v9_sodium_extra", NO);
-                NSLog(@"[CocoLauncher] Sodium Extra: weather off, FPS top right");
+                NSLog(@"[CocoLauncher] Sodium Extra: weather off, FPS (not extended) top right");
             }
         }
     }
