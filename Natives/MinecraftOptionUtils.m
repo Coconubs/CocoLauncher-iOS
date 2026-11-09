@@ -5,6 +5,7 @@
 
 @interface MinecraftOptionUtils ()
 @property(nonatomic) NSMutableArray<NSString *> *lineList;
+- (void)cocoApplySodiumThreads:(int)threads;
 @end
 
 @implementation MinecraftOptionUtils
@@ -32,7 +33,7 @@
             [options setKey:key value:values[key]];
         }
         NSLog(@"[CocoLauncher] Applied %@ preset to options.txt (%lu values)", pending, (unsigned long)values.count);
-        [self cocoApplySodiumThreads:CocoPresetChunkThreads(pending)];
+        [options cocoApplySodiumThreads:CocoPresetChunkThreads(pending)];
         setPrefObject(@"internal.coco_pending_preset", @"");
     }
     [options save];
