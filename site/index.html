@@ -2,113 +2,216 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CocoLauncher iOS</title>
-<meta name="description" content="CocoLauncher cho iPhone/iPad: chơi Coco Cobblemon (Minecraft Java). Cài bằng SideStore.">
+<meta name="description" content="CocoLauncher cho iPhone/iPad: chơi Coco Cobblemon (Minecraft Java 1.21.1). Hướng dẫn cài cho iOS 26 trở xuống và iOS 27.">
+<meta name="theme-color" content="#0d1020">
 <link rel="icon" href="icon-256.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f4f8fc;
-  --card: #ffffff;
-  --text: #13202f;
-  --muted: #5a6b7d;
-  --line: #d9e3ee;
-  --accent: #2f7fd1;
-  --accent-text: #ffffff;
-  --warn-bg: #fff6e0;
-  --warn-line: #f0d28a;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1722;
-    --card: #182333;
-    --text: #e8eef5;
-    --muted: #9fb0c3;
-    --line: #2a3a50;
-    --accent: #5aa6ee;
-    --accent-text: #0b1420;
-    --warn-bg: #2b2412;
-    --warn-line: #6a5522;
-  }
+  --bg: #0d1020;
+  --panel: #161a2e;
+  --panel-2: #1d2240;
+  --line: rgba(255,255,255,.09);
+  --text: #eef0f8;
+  --muted: #9aa1bd;
+  --orange-1: #e89a34;
+  --orange-2: #e04e2e;
+  --gold: #ffb347;
+  --green: #4ade80;
+  --discord: #5865f2;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.6 "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
-header { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; }
-header img { width: 72px; height: 72px; border-radius: 16px; }
-h1 { font-size: 1.5rem; margin: 0; }
-.sub { color: var(--muted); margin: 2px 0 0; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 14px 0; }
-.btn { display: block; text-align: center; text-decoration: none; font-weight: 600; padding: 13px 14px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--accent); color: var(--accent); }
-.btn.primary { background: var(--accent); color: var(--accent-text); }
-.hint { color: var(--muted); font-size: .9rem; margin: 4px 0 0; }
-.warn { background: var(--warn-bg); border-color: var(--warn-line); }
-h2 { font-size: 1.05rem; margin: 0 0 8px; }
-ul, ol { margin: 6px 0 0; padding-left: 22px; }
-li { margin: 4px 0; }
-code { font-size: .88em; word-break: break-all; }
-footer { color: var(--muted); font-size: .85rem; margin-top: 28px; }
-a { color: var(--accent); }
+a { color: var(--gold); }
+.hero {
+  position: relative;
+  min-height: 360px;
+  padding: 28px 16px 36px;
+  background: linear-gradient(180deg, rgba(13,16,32,.15) 0%, rgba(13,16,32,.75) 60%, var(--bg) 100%), url("hero.jpg") center/cover no-repeat;
+  display: flex; align-items: flex-end;
+}
+.wrap { max-width: 720px; margin: 0 auto; width: 100%; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand img { width: 68px; height: 68px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.brand h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; }
+.tag { color: var(--gold); font-weight: 600; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 2px; }
+.lead { color: #d6d9ea; margin: 14px 0 0; max-width: 560px; }
+.ver { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 6px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid var(--line); font-size: .85rem; color: #d6d9ea; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+main { padding: 0 16px 56px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; margin: 16px 0; }
+.card h2 { font-size: 1.15rem; margin: 0 0 10px; font-weight: 800; }
+.muted { color: var(--muted); font-size: .92rem; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; font-weight: 800;
+  padding: 15px 16px; border-radius: 14px; margin: 10px 0 0; color: var(--text); background: var(--panel-2);
+  border: 1px solid var(--line); letter-spacing: .02em; text-align: center; }
+.btn.primary { background: linear-gradient(90deg, var(--orange-1), var(--orange-2)); color: #1a0f08; border: 0; }
+.btn.discord { background: var(--discord); color: #fff; border: 0; }
+.btn svg { width: 24px; height: 24px; flex: none; }
+.req { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.req div { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px; font-size: .9rem; }
+.req b { display: block; color: var(--gold); font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+.tabs { display: flex; gap: 8px; background: var(--panel-2); padding: 5px; border-radius: 14px; border: 1px solid var(--line); }
+.tabs button { flex: 1; font: inherit; font-weight: 800; color: var(--muted); background: transparent; border: 0; border-radius: 10px; padding: 10px 6px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: linear-gradient(90deg, var(--orange-1), var(--orange-2)); color: #1a0f08; }
+.pane { display: none; } .pane.on { display: block; }
+.part { color: var(--gold); font-weight: 800; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; margin: 18px 0 8px; }
+ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; }
+ol.steps li { counter-increment: s; position: relative; padding: 2px 0 14px 44px; }
+ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; font-weight: 800; font-size: .9rem; background: rgba(255,179,71,.14); color: var(--gold); border: 1px solid rgba(255,179,71,.35); }
+ol.steps li::after { content: ""; position: absolute; left: 15px; top: 32px; bottom: 2px; width: 1px; background: var(--line); }
+ol.steps li:last-child::after { display: none; }
+.note { background: rgba(255,179,71,.08); border: 1px solid rgba(255,179,71,.28); border-radius: 14px; padding: 12px 14px; font-size: .9rem; margin-top: 12px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+.mini { display: grid; gap: 10px; }
+.mini div { display: flex; gap: 12px; align-items: flex-start; }
+.mini span { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--line); font-size: .85rem; font-weight: 800; color: var(--gold); }
+footer { color: var(--muted); font-size: .82rem; margin-top: 28px; }
+@media (max-width: 420px) { .req { grid-template-columns: 1fr; } .brand h1 { font-size: 1.6rem; } }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <img src="icon.png" alt="">
-    <div>
-      <h1>CocoLauncher iOS</h1>
-      <p class="sub">Chơi Coco Cobblemon (Minecraft Java) trên iPhone/iPad</p>
-      <p class="sub" id="ver">Đang đọc phiên bản…</p>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <img src="icon.png" alt="">
+      <div>
+        <p class="tag">Coco Cobblemon</p>
+        <h1>CocoLauncher iOS</h1>
+      </div>
     </div>
-  </header>
-
-  <div class="card warn">
-    <h2>Điều kiện</h2>
-    <ul>
-      <li>Chỉ cần <b>tên nhân vật</b> (tài khoản Local), không cần đăng nhập Microsoft. Theo EULA của Minecraft, người chơi cần sở hữu Minecraft: Java Edition.</li>
-      <li>Ngồi máy tính <b>1 lần</b> để cài SideStore và tạo pairing (iloader).</li>
-      <li>App <b>LocalDevVPN</b> (App Store) và <b>StikDebug</b> để bật JIT.</li>
-      <li>Bản cài đã <b>mở khoá RAM</b>. Máy <b>8 GB</b> (iPhone 15 Pro, 15 Pro Max, 16 trở lên): tối thiểu <b>3,5 GB</b>, mượt <b>3,8–4 GB</b>. Máy <b>6 GB</b> (iPhone 13 Pro, 14, 15): <b>2,5 GB</b>, cấu hình Thấp.</li>
-    </ul>
+    <p class="lead">Chơi Coco Cobblemon (Minecraft Java 1.21.1) trên iPhone/iPad. Chỉ cần nhập tên nhân vật và bấm CHƠI, app tự tải game và gói Coco.</p>
+    <span class="ver"><span class="dot"></span><span id="ver">Đang đọc phiên bản…</span></span>
   </div>
+</header>
 
-  <div class="card">
-    <h2>Cài đặt</h2>
-    <a class="btn primary" href="them-nguon.html">Thêm nguồn Coco vào SideStore</a>
-    <p class="hint">Sau đó vào SideStore › Browse › Coco Cobblemon › CocoLauncher › Install.</p>
+<main>
+<div class="wrap">
+
+  <section class="card">
+    <h2>Cần có</h2>
+    <div class="req">
+      <div><b>Máy</b>iPhone/iPad iOS 14+. Khuyên máy 8 GB RAM (15 Pro, 16, 17). Máy 6 GB chơi được ở cấu hình Thấp.</div>
+      <div><b>RAM</b>Phải mở khoá RAM: máy 8 GB tối thiểu 3,5 GB (mượt 3,8–4 GB), máy 6 GB 2,5 GB.</div>
+      <div><b>Máy tính</b>Windows hoặc Mac + cáp, dùng 1 lần khoảng 30 phút.</div>
+      <div><b>Tài khoản</b>Một Apple ID (nên dùng Apple ID phụ). Vào game chỉ cần tên nhân vật.</div>
+    </div>
+    <p class="muted" style="margin:12px 0 0">Không cài bằng KSign, ESign hay "chứng chỉ chung": app không bật được JIT nên không chạy được. Theo EULA của Minecraft, người chơi cần sở hữu Minecraft: Java Edition.</p>
+  </section>
+
+  <section class="card">
+    <h2>Tải CocoLauncher</h2>
+    <a class="btn primary" id="ipa" href="https://github.com/Coconubs/CocoLauncher-iOS/releases">⬇ Tải file IPA (dùng với iloader)</a>
+    <a class="btn" href="them-nguon.html">Thêm nguồn Coco vào SideStore</a>
     <a class="btn" id="install" href="cai.html">Cài thẳng bằng SideStore</a>
-    <a class="btn" id="ipa" href="https://github.com/Coconubs/CocoLauncher-iOS/releases">Tải file IPA (dùng với iloader › Import IPA)</a>
-    <p class="hint">Địa chỉ nguồn: <code>https://coconubs.github.io/CocoLauncher-iOS/source.json</code></p>
-  </div>
+    <p class="muted" style="margin:10px 0 0">Nguồn SideStore: <code>https://coconubs.github.io/CocoLauncher-iOS/source.json</code></p>
+  </section>
 
-  <div class="card">
-    <h2>Mỗi lần chơi</h2>
-    <ol>
-      <li>Bật Wi-Fi, mở LocalDevVPN › Connect.</li>
-      <li>Mở CocoLauncher, nhập tên nhân vật › <b>CHƠI</b>. App tự tải game (lần đầu) và mở StikDebug để bật JIT rồi quay lại.</li>
-      <li>Multiplayer › Coco › gõ <code>/login</code>.</li>
+  <section class="card">
+    <h2>Hướng dẫn cài</h2>
+    <p class="muted" style="margin:0 0 12px">Xem phiên bản iOS: Cài đặt › Cài đặt chung › Giới thiệu › Phiên bản iOS.</p>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-pane="ios26">iOS 26 trở xuống</button>
+      <button role="tab" aria-selected="false" data-pane="ios27">iOS 27 trở lên</button>
+    </div>
+
+    <div class="pane on" id="ios26">
+      <p class="part">Phần 1 · Với máy tính (1 lần)</p>
+      <ol class="steps">
+        <li><b>iPhone:</b> App Store › cài <b>LocalDevVPN</b> (miễn phí) › mở › <b>Connect</b> › cho phép thêm VPN.</li>
+        <li><b>Máy tính:</b> cài <b>iTunes</b> (bản từ apple.com, không lấy bản Microsoft Store) và <b>iloader</b> (<a href="https://github.com/nab138/iloader/releases">github.com/nab138/iloader</a>).</li>
+        <li>Cắm cáp, mở khoá iPhone, bấm <b>Tin cậy</b>.</li>
+        <li><b>iloader:</b> đăng nhập Apple ID + mã 2 lớp › <b>Install SideStore</b> › chờ báo xong. Chưa rút cáp.</li>
+        <li><b>iPhone:</b> Cài đặt › Cài đặt chung › <b>VPN &amp; Quản lý thiết bị</b> › Apple ID của bạn › <b>Tin cậy</b>.</li>
+        <li><b>iPhone:</b> Cài đặt › Quyền riêng tư &amp; Bảo mật › <b>Chế độ nhà phát triển</b> › Bật › máy khởi động lại › chọn Bật.</li>
+        <li><b>iPhone:</b> LocalDevVPN Connect › mở <b>SideStore</b> › Settings › đăng nhập <b>cùng Apple ID</b>.</li>
+        <li><b>Máy tính:</b> tải file IPA ở nút phía trên › <b>iloader › Import IPA</b> › chọn file CocoLauncher. Cài cách này app có sẵn quyền thêm RAM.</li>
+        <li><b>iPhone:</b> SideStore › Sources › <b>+</b> › dán <code>https://stikdebug.xyz/index.json</code> › cài <b>StikDebug</b>.</li>
+        <li><b>iloader:</b> <b>Manage Pairing File</b> › <b>Place</b> cạnh StikDebug › thấy báo thành công. Rút cáp, xong phần máy tính.</li>
+      </ol>
+      <div class="note">Apple ID miễn phí chỉ cài được <b>3 app</b>: SideStore, CocoLauncher, StikDebug. Làm đúng thứ tự 8 › 9 › 10 (bước Place chỉ làm được khi StikDebug đã cài). Nâng iOS, đổi mật mã hoặc reset máy thì phải cắm máy tính làm lại bước 10.</div>
+    </div>
+
+    <div class="pane" id="ios27">
+      <p class="part">Phần 1 · Với máy tính (1 lần)</p>
+      <ol class="steps">
+        <li><b>iPhone:</b> App Store › cài <b>LocalDevVPN</b> › mở › <b>Connect</b>.</li>
+        <li><b>Máy tính:</b> cài <b>iTunes</b> (bản apple.com) và <b>iloader</b> (<a href="https://github.com/nab138/iloader/releases">github.com/nab138/iloader</a>). Cắm cáp, bấm <b>Tin cậy</b>.</li>
+        <li><b>iloader:</b> đăng nhập Apple ID › <b>Install SideStore</b>.</li>
+        <li><b>iPhone:</b> Tin cậy Apple ID (VPN &amp; Quản lý thiết bị) và bật <b>Chế độ nhà phát triển</b>, giống tab iOS 26.</li>
+        <li><b>Máy tính:</b> <b>iloader › Import IPA</b> › chọn file CocoLauncher (có sẵn quyền thêm RAM). Rút cáp.</li>
+      </ol>
+      <p class="part">Phần 2 · Ghép đôi ngay trên iPhone</p>
+      <ol class="steps">
+        <li>SideStore › Settings › đăng nhập cùng Apple ID › Sources › <b>+</b> › <code>https://stikdebug.xyz/index.json</code> › cài <b>StikDebug</b>.</li>
+        <li>Mở <b>StikDebug</b> › làm theo hướng dẫn <b>ghép đôi trên máy</b> (từ iOS 27 tạo được file ghép đôi ngay trên iPhone, không cần cắm máy tính lại).</li>
+      </ol>
+      <div class="note">Nếu StikDebug không tạo được file ghép đôi trên máy: cắm lại máy tính và làm bước 10 ở tab iOS 26 (iloader › Manage Pairing File › Place). Không dùng SideInstaller hay chứng chỉ doanh nghiệp: hay bị thu hồi.</div>
+    </div>
+
+    <p class="part">Phần cuối · Trên iPhone (mọi phiên bản iOS)</p>
+    <ol class="steps">
+      <li>Wi-Fi + LocalDevVPN Connected › mở <b>StikDebug</b> › Settings › bật <b>Picture in Picture</b> và <b>Always Run Scripts</b>.</li>
+      <li>Mở <b>CocoLauncher</b>. Nếu app hỏi <b>Mở khoá RAM</b>: đăng nhập đúng Apple ID đã dùng cho SideStore, xong bấm <b>Cài lại qua SideStore</b> hoặc <b>Refresh</b> trong SideStore.</li>
+      <li>Nhập <b>tên nhân vật</b> (3–16 ký tự: chữ không dấu, số, dấu _) › bấm <b>CHƠI</b>. Lần đầu app tải khoảng 1,5 GB, nên dùng Wi-Fi; màn hình đen vài phút là bình thường.</li>
+      <li>App tự mở StikDebug bật JIT rồi quay lại. Vào Multiplayer › server Coco › gõ <code>/register</code> (người mới) hoặc <code>/login</code>.</li>
     </ol>
-    <p class="hint">Cứ 7 ngày: SideStore › My Apps › Refresh All. <a href="huong-dan.html">Hướng dẫn và lỗi thường gặp</a></p>
-  </div>
+  </section>
 
-  <div class="card">
+  <section class="card">
+    <h2>Mỗi lần chơi</h2>
+    <div class="mini">
+      <div><span>1</span>Bật Wi-Fi, mở LocalDevVPN › Connect.</div>
+      <div><span>2</span>Mở CocoLauncher › CHƠI. App tự bật JIT qua StikDebug rồi quay lại.</div>
+      <div><span>3</span>JIT bật rồi thì chuyển sang 4G cũng được. Gói Coco có bản mới thì app tự tải phần thay đổi.</div>
+      <div><span>⟳</span>Cứ 7 ngày: SideStore › My Apps › <b>Refresh All</b> (Wi-Fi + LocalDevVPN). Quá hạn thì app không mở được cho tới khi Refresh.</div>
+    </div>
+    <a class="btn" href="huong-dan.html">Lỗi thường gặp và cách sửa</a>
+  </section>
+
+  <section class="card">
     <h2>Cần hỗ trợ?</h2>
-    <p class="hint">Lỗi cài đặt, không vào được game, văng game: hỏi trên Discord Coco, gửi kèm ảnh chụp và file latestlog.txt (app Tệp › CocoLauncher).</p>
-    <a class="btn primary" href="https://discord.gg/hyspace">Discord hỗ trợ Coco</a>
-  </div>
+    <p class="muted" style="margin:0">Lỗi cài đặt, không vào được game, văng game: hỏi trên Discord Coco, gửi kèm ảnh chụp và file <code>latestlog.txt</code> (app Tệp › CocoLauncher).</p>
+    <a class="btn discord" href="https://discord.gg/hyspace">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+      Discord hỗ trợ Coco
+    </a>
+  </section>
 
   <footer>
     <p>CocoLauncher là bản sửa của <a href="https://github.com/AngelAuraMC/Amethyst-iOS">Angel Aura Amethyst</a> (dựa trên PojavLauncher), mã nguồn mở theo giấy phép GPLv3: <a href="https://github.com/Coconubs/CocoLauncher-iOS">github.com/Coconubs/CocoLauncher-iOS</a>.</p>
     <p>Coco Cobblemon không liên quan tới Mojang hay Microsoft. Minecraft là thương hiệu của Mojang AB.</p>
   </footer>
+</div>
 </main>
 <script>
+document.querySelectorAll(".tabs button").forEach(function (b) {
+  b.addEventListener("click", function () {
+    document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+    document.querySelectorAll(".pane").forEach(function (p) { p.classList.toggle("on", p.id === b.dataset.pane); });
+  });
+});
+// Open the tab for this iPhone's iOS version
+(function () {
+  var m = navigator.userAgent.match(/OS (\d+)_/);
+  if (m && parseInt(m[1], 10) >= 27) {
+    var b = document.querySelector('.tabs button[data-pane="ios27"]');
+    if (b) b.click();
+  }
+})();
 fetch("source.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (src) {
   var app = (src.apps || [])[0];
   if (!app || !app.versions || !app.versions.length) {
@@ -116,10 +219,10 @@ fetch("source.json", { cache: "no-store" }).then(function (r) { return r.json();
     return;
   }
   var v = app.versions[0];
-  document.getElementById("ver").textContent = "Bản " + v.version + " · " + (v.size / 1048576).toFixed(0) + " MB · iOS " + (v.minOSVersion || "14.0") + " trở lên";
+  document.getElementById("ver").textContent = "Bản " + v.version + (v.buildVersion ? " (build " + v.buildVersion + ")" : "") + " · " + (v.size / 1048576).toFixed(0) + " MB";
   document.getElementById("ipa").href = v.downloadURL;
 }).catch(function () {
-  document.getElementById("ver").textContent = "";
+  document.getElementById("ver").textContent = "CocoLauncher iOS";
 });
 </script>
 </body>
