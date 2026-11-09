@@ -78,6 +78,7 @@ ol.steps li:last-child::after { display: none; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
 .mini { display: grid; gap: 10px; }
 .mini div { display: flex; gap: 12px; align-items: flex-start; }
+.mini p { margin: 3px 0 0; }
 .mini span { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--line); font-size: .85rem; font-weight: 800; color: var(--gold); }
 footer { color: var(--muted); font-size: .82rem; margin-top: 28px; }
 @media (max-width: 420px) { .req { grid-template-columns: 1fr; } .brand h1 { font-size: 1.6rem; } }
@@ -174,10 +175,10 @@ footer { color: var(--muted); font-size: .82rem; margin-top: 28px; }
   <section class="card">
     <h2>Mỗi lần chơi</h2>
     <div class="mini">
-      <div><span>1</span>Bật Wi-Fi, mở LocalDevVPN › Connect.</div>
-      <div><span>2</span>Mở CocoLauncher › CHƠI. App tự bật JIT qua StikDebug rồi quay lại.</div>
-      <div><span>3</span>JIT bật rồi thì chuyển sang 4G cũng được. Gói Coco có bản mới thì app tự tải phần thay đổi.</div>
-      <div><span>⟳</span>Cứ 7 ngày: SideStore › My Apps › <b>Refresh All</b> (Wi-Fi + LocalDevVPN). Quá hạn thì app không mở được cho tới khi Refresh.</div>
+      <div><span>1</span><p>Bật Wi-Fi, mở LocalDevVPN › Connect.</p></div>
+      <div><span>2</span><p>Mở CocoLauncher › CHƠI. App tự bật JIT qua StikDebug rồi quay lại.</p></div>
+      <div><span>3</span><p>JIT bật rồi thì chuyển sang 4G cũng được. Gói Coco có bản mới thì app tự tải phần thay đổi.</p></div>
+      <div><span>⟳</span><p>Cứ 7 ngày: SideStore › My Apps › <b>Refresh All</b> (Wi-Fi + LocalDevVPN). Quá hạn thì app không mở được cho tới khi Refresh.</p></div>
     </div>
     <a class="btn" href="huong-dan.html">Lỗi thường gặp và cách sửa</a>
   </section>
