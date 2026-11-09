@@ -48,6 +48,9 @@ jobs:
           distribution: zulu
           java-version: '8'
 
+      - name: Rust for iOS (cocoram)
+        run: rustup target add aarch64-apple-ios
+
       - name: Build for the iOS Simulator
         id: build
         continue-on-error: true
