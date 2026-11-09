@@ -16,6 +16,8 @@
 // 2026-11-08: Coco Lite iOS (tools/ios-lite.json in CocoLauncher), lighter than the Android pack
 #define COCO_PACK_MANIFEST_URL  @"https://github.com/Coconubs/cocolauncher-pack/releases/download/ios-pack/manifest.json"
 #define COCO_PACK_URL_PREFIX    @"https://github.com/Coconubs/cocolauncher-pack/releases/download/"
+// Copy of the same releases on Cloudflare R2 (<tag>/<file>, tools/r2-sync.js), used when GitHub fails
+#define COCO_PACK_R2_PREFIX     @"https://pub-707713d3c5be45869a45b80dd6fb862a.r2.dev/"
 #define COCO_PACK_MARKER        @".coco-pack.json"
 
 // Help page shown in the "News" tab.

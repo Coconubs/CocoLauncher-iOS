@@ -206,6 +206,13 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             [self.cocoReport recordRetry:item.group name:item.name reason:reason resumed:resumeData != nil];
             NSLog(@"[MCDL] Retry %lu/%lu for %@ <%@>: %@%@", (unsigned long)item.attempt, (unsigned long)[CocoDownloadPolicy maxAttempts],
                 item.name, item.url, reason, resumeData ? @" (resuming with HTTP Range)" : @"");
+            // CocoLauncher: a Coco pack file that failed on GitHub (504s, outages) is
+            // retried from the R2 copy; resume data belongs to the old host
+            if ([item.url hasPrefix:COCO_PACK_URL_PREFIX]) {
+                item.url = [COCO_PACK_R2_PREFIX stringByAppendingString:[item.url substringFromIndex:COCO_PACK_URL_PREFIX.length]];
+                resumeData = nil;
+                NSLog(@"[MCDL] %@: switching to the R2 copy", item.name);
+            }
             double delay = [CocoDownloadPolicy delayBeforeAttempt:item.attempt];
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
                 if (self.progress.cancelled || self.cocoFinished) {
@@ -575,7 +582,13 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         completion(@[]);
         return;
     }
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:COCO_PACK_MANIFEST_URL]
+    [self cocoPackTasksFromURL:COCO_PACK_MANIFEST_URL completion:completion];
+}
+
+// The manifest from GitHub first, then from the R2 copy. File names in it stay
+// GitHub release URLs; each file falls back to R2 on its own when GitHub fails.
+- (void)cocoPackTasksFromURL:(NSString *)manifestURL completion:(void (^)(NSArray *tasks))completion {
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:manifestURL]
         cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
     NSURLSessionDataTask *dataTask = [NSURLSession.sharedSession dataTaskWithRequest:request
         completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
@@ -588,6 +601,12 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             }
         }
         if (self.progress.cancelled) {
+            return;
+        }
+        if (manifest == nil && [manifestURL isEqualToString:COCO_PACK_MANIFEST_URL]) {
+            NSLog(@"[CocoPack] manifest.json from GitHub failed (HTTP %ld, %@), trying the R2 copy", (long)status, error.localizedDescription);
+            NSString *r2 = [COCO_PACK_R2_PREFIX stringByAppendingString:[COCO_PACK_MANIFEST_URL substringFromIndex:COCO_PACK_URL_PREFIX.length]];
+            [self cocoPackTasksFromURL:r2 completion:completion];
             return;
         }
         if (manifest == nil) {
