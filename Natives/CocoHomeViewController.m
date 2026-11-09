@@ -235,10 +235,6 @@ static NSTimeInterval const CocoHeroSeconds = 9;
     }
     [self.view addSubview:dots];
     self.heroDots = dots;
-    [NSLayoutConstraint activateConstraints:@[
-        [dots.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-20],
-        [dots.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-14],
-    ]];
 
     // Random first picture each time, as on Windows
     self.heroIndex = arc4random_uniform((uint32_t)CocoHeroCount);
@@ -421,6 +417,12 @@ static NSTimeInterval const CocoHeroSeconds = 9;
     CocoStyleBox(chip, CocoColor(0x99121424), CocoColor(0x17FFFFFF), 16);
     [self.view addSubview:chip];
     self.chipView = chip;
+    // Slideshow dots right under the status chip (at the bottom they ran into the version line in portrait)
+    [self.view bringSubviewToFront:self.heroDots];
+    [NSLayoutConstraint activateConstraints:@[
+        [self.heroDots.trailingAnchor constraintEqualToAnchor:chip.trailingAnchor constant:-14],
+        [self.heroDots.topAnchor constraintEqualToAnchor:chip.bottomAnchor constant:10],
+    ]];
 
     UIStackView *row = [UIStackView new];
     row.translatesAutoresizingMaskIntoConstraints = NO;
