@@ -539,3 +539,7 @@ Then open CocoLauncher again: RAM can be set to 3.5-4 GB (the first log line say
 "coco.ram.min.message_locked" = "The game is set to %1$d MB of RAM. The Coco pack needs at least %2$d MB (3.5 GB) to play; for smooth play use %3$d–4096 MB (3.8–4 GB). This install has no increased memory limit, so iOS only allows about %4$d MB: tap UNLOCK RAM, then SideStore › Refresh, then set the RAM again in Settings.";
 "coco.ram.min.unlock" = "UNLOCK RAM";
 "coco.ram.min.settings" = "Open RAM settings";
+"coco.settings.recording_hide" = "Buttons in screenshots/recordings: %@";
+"coco.settings.recording_hide.hidden" = "Hidden";
+"coco.settings.recording_hide.shown" = "Shown";
+"coco.settings.recording_hide_note" = "Hidden: screenshots, screen recordings and livestreams show only the game, without buttons (they stay visible on screen to tap). Shown: buttons appear in pictures and videos, handy for bug reports or guides.";

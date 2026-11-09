@@ -21,6 +21,7 @@
 @property(nonatomic) UILabel *ramNote;
 @property(nonatomic) CocoRowButton *overSafeButton;
 @property(nonatomic) CocoRowButton *mfDynamicButton;
+@property(nonatomic) CocoRowButton *recordingHideButton;
 @property(nonatomic) UILabel *ramEntitlement;
 @property(nonatomic) int ramStep;
 
@@ -384,6 +385,10 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
     [gap.heightAnchor constraintEqualToConstant:8].active = YES;
     [column addArrangedSubview:gap];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.controls", nil) action:@selector(openControls)]];
+    // On-screen buttons in screenshots / screen recordings / livestreams
+    self.recordingHideButton = [self rowButton:@"" action:@selector(recordingHideTapped)];
+    [column addArrangedSubview:self.recordingHideButton];
+    [column addArrangedSubview:[self noteLabel:localize(@"coco.settings.recording_hide_note", nil)]];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.folder", nil) action:@selector(openFolder)]];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.send_log", nil) action:@selector(sendLog:)]];
     [column addArrangedSubview:[self rowButton:localize(@"coco.settings.advanced", nil) action:@selector(openAdvanced)]];
@@ -414,6 +419,9 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
         localize(getPrefBool(@"java.coco_mf_dynamic_resources") ? @"coco.mg.val.on" : @"coco.mg.val.off", nil)]
         forState:UIControlStateNormal];
     [self updateRamTexts:ram];
+    [self.recordingHideButton setTitle:[NSString stringWithFormat:localize(@"coco.settings.recording_hide", nil),
+        localize(getPrefBool(@"control.recording_hide") ? @"coco.settings.recording_hide.hidden" : @"coco.settings.recording_hide.shown", nil)]
+        forState:UIControlStateNormal];
 
     int resolution = MIN((int)getPrefInt(@"video.resolution"), 100);
     self.resolutionSlider.value = resolution;
@@ -561,6 +569,12 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
 
 - (void)memoryUnlockTapped {
     CocoPresentMemoryUnlock(self);
+}
+
+- (void)recordingHideTapped {
+    // Applied by the game screen (SurfaceViewController reads it when it opens)
+    setPrefBool(@"control.recording_hide", !getPrefBool(@"control.recording_hide"));
+    [self refreshValues];
 }
 
 - (void)mfDynamicTapped {

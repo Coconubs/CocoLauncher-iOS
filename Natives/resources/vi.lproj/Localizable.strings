@@ -491,3 +491,7 @@ Xong mở lại CocoLauncher: RAM chọn được 3,5–4 GB (dòng đầu log g
 "coco.ram.min.message_locked" = "RAM cấp cho game đang là %1$d MB. Gói Coco cần tối thiểu %2$d MB (3,5 GB) mới cho chơi; chơi mượt nên đặt %3$d–4096 MB (3,8–4 GB). Bản cài này chưa mở khoá RAM nên iOS chỉ cho khoảng %4$d MB: bấm MỞ KHOÁ RAM, xong vào SideStore › Refresh rồi đặt lại RAM trong Cài đặt.";
 "coco.ram.min.unlock" = "MỞ KHOÁ RAM";
 "coco.ram.min.settings" = "Mở Cài đặt RAM";
+"coco.settings.recording_hide" = "Nút khi chụp/quay màn hình: %@";
+"coco.settings.recording_hide.hidden" = "Ẩn";
+"coco.settings.recording_hide.shown" = "Hiện";
+"coco.settings.recording_hide_note" = "Ẩn: ảnh chụp, video quay màn hình và livestream chỉ có hình game, không có nút (trên màn hình vẫn thấy nút để bấm). Hiện: ảnh và video có đủ nút, tiện khi chụp gửi báo lỗi hoặc hướng dẫn.";
