@@ -1,6 +1,7 @@
 #include <CommonCrypto/CommonDigest.h>
 
 #import "authenticator/BaseAuthenticator.h"
+#import "authenticator/CocoAccounts.h"
 #import "installer/modpack/ModpackAPI.h"
 #import "AFNetworking.h"
 #import "CocoConfig.h"
@@ -17,6 +18,11 @@
 // CocoLauncher: Coco pack sync state
 @property NSInteger cocoRemaining;
 @property NSDictionary *cocoManifest;
+// CocoLauncher: official Minecraft files (Mojang servers) that could not be
+// downloaded because no account that owns the game was verified on this device
+@property BOOL cocoOfficialAllowed;
+@property NSMutableArray<NSString *> *cocoBlockedOfficial;
+@property BOOL cocoFinished;
 @end
 
 // CocoLauncher: SHA-1 of a file without reading it all into memory at once
@@ -58,7 +64,7 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     if (fileExists && [self checkSHA:sha forFile:path altName:altName]) {
         if (success) success();
         return nil;
-    } else if (![self checkAccessWithDialog:YES]) {
+    } else if (![self cocoMayDownloadURL:url name:(altName ?: path.lastPathComponent)]) {
         return nil;
     }
 
@@ -166,6 +172,9 @@ static NSString *CocoSHA1OfFile(NSString *path) {
 
     NSURLSessionDownloadTask *task = [self createDownloadTask:url size:size sha:sha altName:nil toPath:path success:completionBlock];
     [task resume];
+    if (task == nil && self.cocoBlockedOfficial.count > 0) {
+        [self cocoFinishBlocked];
+    }
 }
 
 #pragma mark - Minecraft installation
@@ -186,6 +195,9 @@ static NSString *CocoSHA1OfFile(NSString *path) {
         success();
     }];
     [task resume];
+    if (task == nil && self.cocoBlockedOfficial.count > 0) {
+        [self cocoFinishBlocked];
+    }
 }
 
 - (NSArray *)downloadClientLibraries {
@@ -271,6 +283,11 @@ static NSString *CocoSHA1OfFile(NSString *path) {
             if (self.progress.cancelled) {
                 return;
             }
+            // CocoLauncher: report the exact blocked step instead of switching accounts
+            if (self.cocoBlockedOfficial.count > 0) {
+                [self cocoFinishBlocked];
+                return;
+            }
             // CocoLauncher: after the game files, sync the Coco pack (Coco profile only)
             [self cocoPackTasksWithCompletion:^(NSArray *cocoTasks) {
                 // Drop the 1 byte we set initially
@@ -296,9 +313,9 @@ static NSString *CocoSHA1OfFile(NSString *path) {
 #pragma mark - Coco Cobblemon pack (CocoLauncher)
 
 // The Coco pack only contains Coco Cobblemon's own mods, configs and resource
-// packs (no Mojang files), so it does not go through checkAccessWithDialog.
-// It is only synced from inside downloadVersion, after the Minecraft files
-// have been checked or downloaded with the owner's Microsoft account.
+// packs (no Mojang files), so it never goes through the official-files rule
+// (cocoMayDownloadURL) and works the same for Local and Microsoft accounts.
+// It is synced from inside downloadVersion, after the Minecraft files are valid.
 
 - (NSString *)cocoPackDirectory {
     return [NSString stringWithFormat:@"%s/instances/%@/%@", getenv("AME_HOME"),
@@ -571,13 +588,34 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     self.progress.totalUnitCount = 1;
     [self.fileList removeAllObjects];
     [self.progressList removeAllObjects];
+
+    // CocoLauncher: the installer works the same for every account type
+    NSDictionary *selected = BaseAuthenticator.current.authData;
+    self.cocoBlockedOfficial = [NSMutableArray new];
+    self.cocoFinished = NO;
+    self.lastErrorMessage = nil;
+    self.lastErrorBlocked = NO;
+    self.cocoOfficialAllowed = [CocoMinecraftEntitlement officialDownloadsAllowedForAccountData:selected
+        inHome:[CocoAccountProvider defaultHome]];
+    CocoLaunchContext *context = [CocoLaunchContext contextForAccountData:selected];
+    NSLog(@"[MCDL] Installer for %@, official files %@", context.logDescription ?: @"(no account)",
+        self.cocoOfficialAllowed ? @"allowed" : @"only if already valid on this device");
 }
 
 - (void)finishDownloadWithErrorString:(NSString *)error {
+    @synchronized (self) {
+        if (self.cocoFinished) {
+            return;
+        }
+        self.cocoFinished = YES;
+    }
     [self.progress cancel];
     [self.manager invalidateSessionCancelingTasks:YES resetSession:YES];
-    showDialog(localize(@"Error", nil), error);
-    self.handleError();
+    self.lastErrorMessage = error;
+    if (!self.quietErrors) {
+        showDialog(localize(@"Error", nil), error);
+    }
+    if (self.handleError) self.handleError();
 }
 
 - (void)finishDownloadWithError:(NSError *)error file:(NSString *)file {
@@ -586,17 +624,65 @@ static NSString *CocoSHA1OfFile(NSString *path) {
     [self finishDownloadWithErrorString:errorStr];
 }
 
-// Check if the account has permission to download
-- (BOOL)checkAccessWithDialog:(BOOL)show {
-    // for now
-    BOOL accessible = [BaseAuthenticator.current.authData[@"username"] hasPrefix:@"Demo."] || BaseAuthenticator.current.authData[@"xboxGamertag"] != nil;
-    if (!accessible) {
-        [self.progress cancel];
-        if (show) {
-            [self finishDownloadWithErrorString:localize(@"coco.account.error.local_download", nil)];
+#pragma mark - CocoLauncher: download rule for official Minecraft files
+
+// Only files from Mojang's servers need an account that owns Minecraft:
+// the selected account (Microsoft owner or demo), or a Microsoft owner
+// verified earlier on this device. Fabric, the Coco pack and Java are never
+// blocked, and the selected (Local) account is never changed.
+- (BOOL)cocoMayDownloadURL:(NSString *)url name:(NSString *)name {
+    if (self.cocoOfficialAllowed || ![CocoMinecraftEntitlement isOfficialMinecraftURL:url]) {
+        return YES;
+    }
+    @synchronized (self) {
+        [self.cocoBlockedOfficial addObject:name ?: url.lastPathComponent];
+    }
+    return NO;
+}
+
+- (NSString *)cocoBlockedSummary {
+    NSUInteger jsons = 0, jars = 0, assets = 0;
+    NSMutableArray *samples = [NSMutableArray new];
+    @synchronized (self) {
+        for (NSString *name in self.cocoBlockedOfficial) {
+            if ([name.pathExtension isEqualToString:@"json"]) {
+                jsons++;
+            } else if ([name containsString:@":"] || [name.pathExtension isEqualToString:@"jar"]) {
+                jars++;
+            } else {
+                assets++;
+            }
+            if (samples.count < 3) {
+                [samples addObject:name];
+            }
         }
     }
-    return accessible;
+    return [NSString stringWithFormat:localize(@"coco.install.blocked.detail", nil),
+        (unsigned long)(jsons + jars + assets), (unsigned long)jsons, (unsigned long)jars, (unsigned long)assets,
+        [samples componentsJoinedByString:@", "]];
+}
+
+- (void)cocoFinishBlocked {
+    @synchronized (self) {
+        if (self.cocoFinished) {
+            return;
+        }
+        self.cocoFinished = YES;
+    }
+    NSString *account = BaseAuthenticator.current.authData[@"username"] ?: @"";
+    NSString *message = [NSString stringWithFormat:localize(@"coco.install.blocked.message", nil),
+        COCO_MINECRAFT_VERSION, [self cocoBlockedSummary], account];
+    NSLog(@"[MCDL] Official Minecraft files blocked for %@: %lu file(s)", account, (unsigned long)self.cocoBlockedOfficial.count);
+    [self.progress cancel];
+    [self.manager invalidateSessionCancelingTasks:YES resetSession:YES];
+    self.lastErrorMessage = message;
+    self.lastErrorBlocked = YES;
+    if (self.handleBlocked) {
+        self.handleBlocked(message);
+    } else {
+        showDialog(localize(@"coco.install.blocked.title", nil), message);
+        if (self.handleError) self.handleError();
+    }
 }
 
 // Check SHA of the file

@@ -390,13 +390,9 @@ static void *ProgressObserverContext = &ProgressObserverContext;
                     UIKit_launchMinecraftSurfaceVC(self.view.window, metadata);
                 }];
             };
-            // CocoLauncher: once the game was downloaded with the owner's
-            // Microsoft account, offer to continue with a Local account.
-            if (self.task.fileList.count > 0 && [self cocoShouldOfferLocal]) {
-                [self cocoOfferLocalAccountWithMessage:localize(@"coco.autolocal.message", nil) then:launch];
-            } else {
-                launch();
-            }
+            // CocoLauncher: Microsoft and Local are separate accounts; a
+            // Microsoft account is never turned into a Local one.
+            launch();
         } else {
             [self reloadProfileList];
         }
@@ -430,87 +426,6 @@ static void *ProgressObserverContext = &ProgressObserverContext;
                 context:ProgressObserverContext];
         });
     });
-}
-
-#pragma mark - CocoLauncher: switch to a Local account after the first download
-
-- (BOOL)cocoShouldOfferLocal {
-    NSDictionary *auth = BaseAuthenticator.current.authData;
-    if (![BaseAuthenticator.current isKindOfClass:MicrosoftAuthenticator.class] ||
-        auth[@"xboxGamertag"] == nil || [auth[@"username"] hasPrefix:@"Demo."]) {
-        return NO;
-    }
-    NSString *gameDir = [PLProfiles resolveKeyForCurrentProfile:@"gameDir"];
-    return [gameDir isEqualToString:COCO_PROFILE_GAME_DIR];
-}
-
-- (void)cocoOfferLocalAccountWithMessage:(NSString *)message then:(void(^)(void))launch {
-    NSDictionary *msAuth = BaseAuthenticator.current.authData;
-    NSString *msName = msAuth[@"username"];
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:localize(@"coco.autolocal.title", nil)
-        message:message preferredStyle:UIAlertControllerStyleAlert];
-    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.text = msName;
-        textField.placeholder = localize(@"login.alert.field.username", nil);
-        textField.clearButtonMode = UITextFieldViewModeWhileEditing;
-        textField.keyboardType = UIKeyboardTypeASCIICapable;
-        textField.autocorrectionType = UITextAutocorrectionTypeNo;
-        textField.autocapitalizationType = UITextAutocapitalizationTypeNone;
-        textField.spellCheckingType = UITextSpellCheckingTypeNo;
-    }];
-    __weak UIAlertController *weakAlert = alert;
-    UIAlertAction *switchAction = [UIAlertAction actionWithTitle:localize(@"coco.autolocal.switch", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        NSString *name = [weakAlert.textFields[0].text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-        if ([name rangeOfString:@"^[A-Za-z0-9_]{3,16}$" options:NSRegularExpressionSearch].location == NSNotFound) {
-            [self cocoOfferLocalAccountWithMessage:localize(@"coco.account.error.name_chars", nil) then:launch];
-            return;
-        }
-        NSString *path = [NSString stringWithFormat:@"%s/accounts/%@.json", getenv("AME_HOME"), name];
-        BOOL sameAsMicrosoft = [name isEqualToString:msName];
-        if (sameAsMicrosoft) {
-            // The Local account replaces the Microsoft one (same file name);
-            // sign the Microsoft account out of this app.
-            if (msAuth[@"xuid"]) {
-                [MicrosoftAuthenticator clearTokenDataOfProfile:msAuth[@"xuid"]];
-            }
-        } else if ([NSFileManager.defaultManager fileExistsAtPath:path]) {
-            BaseAuthenticator *existing = [BaseAuthenticator loadSavedName:name];
-            if (![existing isKindOfClass:LocalAuthenticator.class]) {
-                [BaseAuthenticator loadSavedName:msName];
-                [self cocoOfferLocalAccountWithMessage:localize(@"coco.account.error.exists", nil) then:launch];
-                return;
-            }
-            // An existing Local account with this name: just select it
-            [self cocoSelectAccount:name];
-            launch();
-            return;
-        }
-        [[[LocalAuthenticator alloc] initWithInput:name] loginWithCallback:^(id status, BOOL success) {
-            if (!success) {
-                [BaseAuthenticator loadSavedName:msName];
-                showDialog(localize(@"Error", nil), localize(@"coco.autolocal.failed", nil));
-            } else {
-                [self cocoSelectAccount:name];
-            }
-            launch();
-        }];
-    }];
-    [alert addAction:switchAction];
-    [alert addAction:[UIAlertAction actionWithTitle:localize(@"coco.autolocal.keep", nil) style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
-        launch();
-    }]];
-    alert.preferredAction = switchAction;
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)cocoSelectAccount:(NSString *)name {
-    [BaseAuthenticator loadSavedName:name];
-    setPrefObject(@"internal.selected_account", name);
-    UIViewController *menu = [(UINavigationController *)self.splitViewController.viewControllers[0] viewControllers].firstObject;
-    SEL update = NSSelectorFromString(@"updateAccountInfo");
-    if ([menu respondsToSelector:update]) {
-        ((void (*)(id, SEL))[menu methodForSelector:update])(menu, update);
-    }
 }
 
 - (void)invokeAfterJITEnabled:(void(^)(void))handler {

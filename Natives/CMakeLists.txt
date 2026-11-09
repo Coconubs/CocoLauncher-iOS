@@ -101,6 +101,7 @@ add_executable(AngelAuraAmethyst
   UIKit+hook.m
 
   authenticator/BaseAuthenticator.m
+  authenticator/CocoAccounts.m
   authenticator/LocalAuthenticator.m
   authenticator/MicrosoftAuthenticator.m
 

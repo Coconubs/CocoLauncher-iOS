@@ -98,7 +98,11 @@ public final class Tools {
         varArgMap.put("game_assets", Tools.ASSETS_PATH);
         varArgMap.put("game_directory", gameDir.getAbsolutePath());
         varArgMap.put("user_properties", "{}");
-        varArgMap.put("user_type", "mojang");
+        // CocoLauncher: Microsoft accounts (xuid, keychain token) are "msa" so the
+        // game uses its online user API; Local accounts are "legacy": offline
+        // user API, no Yggdrasil/Microsoft calls with a placeholder token.
+        boolean microsoft = profile.xuid != null && !profile.xuid.equals("0") && !profile.xuid.isEmpty();
+        varArgMap.put("user_type", microsoft ? "msa" : "legacy");
         varArgMap.put("version_name", versionName);
         varArgMap.put("version_type", versionInfo.type);
         varArgMap.put("natives_directory", System.getProperty("java.library.path"));

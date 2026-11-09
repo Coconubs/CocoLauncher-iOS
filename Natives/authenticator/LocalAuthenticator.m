@@ -1,34 +1,20 @@
 #import <CommonCrypto/CommonDigest.h>
 #import "BaseAuthenticator.h"
+#import "CocoAccounts.h"
 
 @implementation LocalAuthenticator
 
-// CocoLauncher: same UUID the vanilla game uses for offline players,
-// UUID.nameUUIDFromBytes("OfflinePlayer:" + name) (MD5, version 3), so every
-// local account gets its own player data instead of sharing the zero UUID.
-// No Microsoft token or session is created for local accounts.
+// CocoLauncher: Local accounts come from CocoLocalAccountProvider: nickname
+// + UUID.nameUUIDFromBytes("OfflinePlayer:" + name), saved with "type": "local".
+// No Microsoft token, Xbox session or keychain entry is created or read.
 + (NSString *)offlineUUIDForName:(NSString *)name {
-    NSData *data = [[@"OfflinePlayer:" stringByAppendingString:name] dataUsingEncoding:NSUTF8StringEncoding];
-    unsigned char md5[CC_MD5_DIGEST_LENGTH];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    CC_MD5(data.bytes, (CC_LONG)data.length, md5);
-#pragma clang diagnostic pop
-    md5[6] = (md5[6] & 0x0f) | 0x30; // version 3
-    md5[8] = (md5[8] & 0x3f) | 0x80; // IETF variant
-    NSMutableString *hex = [NSMutableString stringWithCapacity:36];
-    for (int i = 0; i < CC_MD5_DIGEST_LENGTH; i++) {
-        if (i == 4 || i == 6 || i == 8 || i == 10) {
-            [hex appendString:@"-"];
-        }
-        [hex appendFormat:@"%02x", md5[i]];
-    }
-    return hex;
+    return [CocoLocalAccountProvider offlineUUIDForName:name];
 }
 
 - (void)loginWithCallback:(Callback)callback {
-    self.authData[@"oldusername"] = self.authData[@"username"] = self.authData[@"input"];
-    self.authData[@"profileId"] = [LocalAuthenticator offlineUUIDForName:self.authData[@"username"]];
+    NSString *name = self.authData[@"input"];
+    [self.authData addEntriesFromDictionary:[CocoLocalAccountProvider accountDataForName:name]];
+    self.authData[@"oldusername"] = name;
     callback(nil, [super saveChanges]);
 }
 

@@ -3,6 +3,7 @@
 #import <objc/runtime.h>
 
 #import "authenticator/BaseAuthenticator.h"
+#import "authenticator/CocoAccounts.h"
 #import "customcontrols/ControlButton.h"
 #import "customcontrols/ControlDrawer.h"
 #import "customcontrols/ControlSubButton.h"
@@ -431,6 +432,9 @@ static GameSurfaceView* pojavWindow;
         if (minVersion == 0) {
             minVersion = [self.metadata[@"javaVersion"][@"version"] intValue];
         }
+        // CocoLauncher: launch context from the selected account. Local: name +
+        // offline UUID, user type "legacy", no token; Microsoft: keychain token.
+        NSLog(@"[CocoLaunch] %@", [CocoLaunchContext contextForAccountData:BaseAuthenticator.current.authData].logDescription);
         launchJVM(
             BaseAuthenticator.current.authData[@"username"],
             self.metadata,

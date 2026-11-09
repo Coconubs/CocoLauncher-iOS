@@ -286,8 +286,8 @@
 "controller_configurator.section.footer.controller_style" = "Hiển thị các tên nút điều khiển khác nhau trong bộ cấu hình này.";
 
 /* CocoLauncher */
-"coco.account.hint" = "Tài khoản Local dùng tên nhân vật của bạn, tạo và lưu ngay trên máy, không cần Microsoft; dùng để chơi đơn và vào server Coco. Riêng file Minecraft (của Mojang) chỉ tải được bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition, 1 lần duy nhất trên máy này; tải xong có thể xoá tài khoản Microsoft đó.";
-"coco.account.error.local_download" = "Không thể tải Minecraft khi đang dùng tài khoản Local. Hãy chọn tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition để tải game lần đầu. Tải xong mới chuyển sang tài khoản Local.";
+"coco.account.hint" = "Có 2 loại tài khoản độc lập. LOCAL: chỉ cần tên nhân vật, tạo và lưu ngay trên máy, không cần Microsoft; chơi đơn và vào server online-mode=false như Coco. MICROSOFT: đăng nhập chính thức. Riêng file Minecraft của Mojang (client, thư viện, assets) chỉ được tải khi trên máy có một tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition được xác minh; game đã cài hợp lệ thì Local chơi không cần Microsoft.";
+"coco.account.error.local_download" = "Thiếu file Minecraft chính thức và trên máy chưa xác minh tài khoản Microsoft đã mua Minecraft: Java Edition. Tài khoản Local vẫn được giữ nguyên.";
 "coco.pack.error.manifest" = "Không tải được danh sách gói Coco Cobblemon. Kiểm tra kết nối mạng rồi thử lại (lần đầu nên dùng Wi-Fi, khoảng 460 MB).";
 "coco.account.option.local" = "CHƠI BẰNG TÀI KHOẢN LOCAL";
 "coco.account.option.microsoft" = "ĐĂNG NHẬP MICROSOFT";
@@ -341,9 +341,9 @@
 "coco.home.error.account" = "Không tạo được tài khoản với tên này. Thử lại hoặc đổi tên khác.";
 "coco.home.error.versions" = "Không lấy được danh sách phiên bản Minecraft. Kiểm tra mạng rồi bấm CHƠI lại.";
 "coco.home.first.title" = "Cần file Minecraft để chơi";
-"coco.home.first.message" = "Tài khoản Local \"%@\" đã được tạo và lưu trên máy. Máy chưa có file Minecraft: Mojang chỉ cho tải bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition, 1 lần duy nhất. Tải xong, bạn chơi bằng \"%@\" (Local), không cần đăng nhập lại.";
-"coco.home.first.message_noname" = "Máy chưa có file Minecraft: Mojang chỉ cho tải bằng tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition, 1 lần duy nhất. Tải xong, bạn chơi bằng tài khoản Local, không cần đăng nhập lại.";
-"coco.home.first.login" = "ĐĂNG NHẬP MICROSOFT (1 lần để tải game)";
+"coco.home.first.message" = "Tài khoản Local \"%@\" đã được tạo và lưu trên máy, không cần Microsoft. Máy chưa có file Minecraft của Mojang: chỉ tải được khi trên máy có một tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition được xác minh. Sau đó bạn vẫn chơi bằng \"%@\" (Local).";
+"coco.home.first.message_noname" = "Máy chưa có file Minecraft của Mojang: chỉ tải được khi trên máy có một tài khoản Microsoft ĐÃ MUA Minecraft: Java Edition được xác minh. Tài khoản Local vẫn chơi bằng tên của bạn.";
+"coco.home.first.login" = "XÁC MINH BẰNG MICROSOFT (thêm tài khoản, không đổi Local)";
 "coco.home.first.buy" = "Chưa có Minecraft: Java Edition? Mua tại minecraft.net";
 "coco.home.first.later" = "Để sau";
 "coco.home.demo.title" = "Tài khoản chưa mua Minecraft";
@@ -462,3 +462,7 @@
 "coco.unlock.error.noteam" = "Apple ID này chưa có nhóm nhà phát triển. Hãy cài CocoLauncher bằng SideStore với Apple ID này trước.";
 "coco.unlock.error.login" = "Đăng nhập Apple ID không được (sai mật khẩu, mã xác minh, hoặc đã huỷ).\n\n%@";
 "coco.unlock.error.other" = "Có lỗi khi nói chuyện với Apple. Thử lại sau ít phút.\n\n%@";
+"coco.home.retry" = "THỬ LẠI";
+"coco.install.blocked.title" = "Cần file Minecraft để chơi";
+"coco.install.blocked.message" = "Bước bị chặn: tải file Minecraft %1$@ chính thức từ máy chủ Mojang.\n%2$@\n\nLý do: máy này chưa có file hợp lệ và chưa xác minh tài khoản Microsoft nào đã mua Minecraft: Java Edition.\n\nTài khoản Local \"%3$@\" vẫn được giữ, không bị đổi sang Microsoft. Java, Fabric và gói Coco không cần Microsoft. Đăng nhập Microsoft (đã mua) chỉ để xác minh quyền tải, sau đó vẫn chơi bằng \"%3$@\".";
+"coco.install.blocked.detail" = "Còn thiếu %1$lu file: %2$lu file thông tin phiên bản, %3$lu thư viện/client, %4$lu assets (vd: %5$@).";

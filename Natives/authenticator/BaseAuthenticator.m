@@ -1,5 +1,6 @@
 #import <Security/Security.h>
 #import "BaseAuthenticator.h"
+#import "CocoAccounts.h"
 #import "../LauncherPreferences.h"
 #import "../ios_uikit_bridge.h"
 #import "../utils.h"
@@ -29,9 +30,12 @@ static BaseAuthenticator *current = nil;
         return nil;
     }
 
-    if ([authData[@"expiresAt"] longValue] == 0) {
+    // CocoLauncher: the provider decides (explicit "type": "local", or the
+    // upstream rule: no expiry time and no xuid)
+    CocoAccountKind kind = [CocoAccountProvider kindOfAccountData:authData];
+    if (kind == CocoAccountKindLocal || kind == CocoAccountKindNone) {
         return [[LocalAuthenticator alloc] initWithData:authData];
-    } else { 
+    } else {
         return [[MicrosoftAuthenticator alloc] initWithData:authData];
     }
 }

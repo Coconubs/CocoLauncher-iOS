@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #import "authenticator/BaseAuthenticator.h"
+#import "authenticator/CocoAccounts.h"
 #import "CocoConfig.h"
 #import "CocoHomeViewController.h"
 #import "CocoPerformance.h"
@@ -839,6 +840,11 @@ void CocoReloadRootViewController(void) {
             }];
         }
     }
+    // Account layer self-test (LOCAL-01..06) for the simulator workflow; runs on
+    // a temporary empty home, results in Documents/coco-selftest.json
+    if ([defaults boolForKey:@"cocoSelfTest"]) {
+        [CocoAccountSelfTest runWritingResultsTo:[CocoAccountProvider defaultHome]];
+    }
     // Sample name for store/ad screenshots: saved as a Local account like a real player
     NSString *demoName = [defaults stringForKey:@"cocoDemoName"];
     if ([CocoHomeViewController isValidPlayerName:demoName]) {
@@ -966,36 +972,17 @@ void CocoReloadRootViewController(void) {
 }
 
 // Selects (and creates if needed) the account the player will play with
+// A saved account with this name (Local or Microsoft) is used as it is; a new
+// name becomes a Local account (CocoLocalAccountProvider), no Microsoft involved.
 - (BaseAuthenticator *)accountForName:(NSString *)name {
-    if ([self accountExists:name]) {
-        return [BaseAuthenticator loadSavedName:name];
-    }
-    LocalAuthenticator *local = [[LocalAuthenticator alloc] initWithInput:name];
-    __block BOOL saved = NO;
-    [local loginWithCallback:^(id status, BOOL success) {
-        saved = success;
-    }];
-    return saved ? local : nil;
-}
-
-// A saved Microsoft account that owns Minecraft (needed to download the game files once)
-- (NSString *)savedOwnerAccount {
-    NSString *dir = [NSString stringWithFormat:@"%s/accounts", getenv("AME_HOME")];
-    for (NSString *file in [NSFileManager.defaultManager contentsOfDirectoryAtPath:dir error:nil]) {
-        if (![file.pathExtension isEqualToString:@"json"]) {
-            continue;
-        }
-        NSData *data = [NSData dataWithContentsOfFile:[dir stringByAppendingPathComponent:file]];
-        NSDictionary *json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
-        if (![json isKindOfClass:NSDictionary.class]) {
-            continue;
-        }
-        NSString *username = json[@"username"];
-        if ([username isKindOfClass:NSString.class] && ![username hasPrefix:@"Demo."] && json[@"xboxGamertag"] != nil) {
-            return username;
+    if (![self accountExists:name]) {
+        NSString *error = nil;
+        if ([CocoLocalAccountProvider createAccountNamed:name inHome:nil error:&error] == nil) {
+            NSLog(@"[CocoHome] Could not create the Local account %@: %@", name, error);
+            return nil;
         }
     }
-    return nil;
+    return [BaseAuthenticator loadSavedName:name];
 }
 
 - (BOOL)gameFilesPresent {
@@ -1039,28 +1026,31 @@ void CocoReloadRootViewController(void) {
     setPrefObject(@"internal.selected_account", name);
     [self refreshNameNote];
 
-    if ([account isKindOfClass:MicrosoftAuthenticator.class] || [self gameFilesPresent]) {
-        [self prepareAndDownload];
-        return;
-    }
-    // The Minecraft files are not on this device yet: they can only be
-    // downloaded with an account that owns the game (checked by the download task).
-    NSString *owner = [self savedOwnerAccount];
-    if (owner) {
-        [BaseAuthenticator loadSavedName:owner];
-        [self prepareAndDownload];
-    } else {
-        [self presentFirstDownloadForName:name];
-    }
+    // CocoLauncher: one Play path for every account type. The shared installer
+    // checks Java, Fabric, the Minecraft files and the Coco pack, downloads what
+    // is missing and allowed, and names the exact step that is blocked. The
+    // selected account is never swapped for another one.
+    NSLog(@"[CocoHome] Play: %@", [CocoLaunchContext contextForAccountData:account.authData].logDescription);
+    [self prepareAndDownload];
 }
 
 - (void)presentFirstDownloadForName:(NSString *)name {
     NSString *message = name.length > 0
         ? [NSString stringWithFormat:localize(@"coco.home.first.message", nil), name, name]
         : localize(@"coco.home.first.message_noname", nil);
+    [self presentBlockedSheet:message];
+}
+
+// Official Minecraft files are missing and no owner was verified on this
+// device. The Local account stays selected; signing in with Microsoft only
+// adds a separate account that confirms ownership for the download.
+- (void)presentBlockedSheet:(NSString *)message {
     CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.home.first.title", nil) message:message];
     __weak CocoHomeViewController *weakSelf = self;
-    [sheet addPrimary:localize(@"coco.home.first.login", nil) action:^{
+    [sheet addPrimary:localize(@"coco.home.retry", nil) action:^{
+        [weakSelf playTapped];
+    }];
+    [sheet addSecondary:localize(@"coco.home.first.login", nil) action:^{
         [weakSelf loginMicrosoft];
     }];
     [sheet addSecondary:localize(@"coco.home.first.buy", nil) action:^{
@@ -1126,7 +1116,13 @@ void CocoReloadRootViewController(void) {
     [self setBusy:YES title:localize(@"coco.home.busy.download", nil)];
     __weak CocoHomeViewController *weakSelf = self;
     __weak MinecraftResourceDownloadTask *weakTask = task;
+    task.quietErrors = YES;
     task.handleError = ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakSelf downloadFailed:weakTask];
+        });
+    };
+    task.handleBlocked = ^(NSString *message) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [weakSelf downloadFailed:weakTask];
         });
@@ -1160,6 +1156,23 @@ void CocoReloadRootViewController(void) {
     self.task = nil;
     [self setBusy:NO title:nil];
     [self restorePlayAccount];
+    NSString *message = task.lastErrorMessage;
+    if (message.length == 0) {
+        return;
+    }
+    if (task.lastErrorBlocked) {
+        [self presentBlockedSheet:message];
+        return;
+    }
+    // Network or file errors: files already downloaded and verified are kept,
+    // so Retry only fetches what is still missing.
+    CocoSheetViewController *sheet = [CocoSheetViewController sheetWithTitle:localize(@"coco.home.error.title", nil) message:message];
+    __weak CocoHomeViewController *weakSelf = self;
+    [sheet addPrimary:localize(@"coco.home.retry", nil) action:^{
+        [weakSelf playTapped];
+    }];
+    [sheet addSecondary:localize(@"coco.home.first.later", nil) action:nil];
+    [self presentViewController:sheet animated:YES completion:nil];
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
@@ -1374,7 +1387,10 @@ void CocoReloadRootViewController(void) {
         [self presentViewController:sheet animated:YES completion:nil];
         return;
     }
-    // Owner account selected: download the game, then play as the typed name
+    // The Microsoft account is saved on its own; the player keeps the account
+    // they chose (Local stays Local, no token is copied or converted).
+    [self restorePlayAccount];
+    [self refreshNameNote];
     [self prepareAndDownload];
 }
 
