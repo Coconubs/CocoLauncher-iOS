@@ -455,7 +455,11 @@
 "coco.unlock.2fa.devices_button" = "Gửi mã tới thiết bị";
 "coco.unlock.2fa.sms_button" = "Gửi SMS tới %@";
 "coco.unlock.done.title" = "Đã bật Increased Memory Limit";
-"coco.unlock.done.message" = "Bước cuối: bấm CÀI LẠI QUA SIDESTORE. SideStore sẽ ký lại và cài đè CocoLauncher (dữ liệu và game giữ nguyên). Xong mở lại CocoLauncher: RAM chọn được 3,5–4 GB (dòng đầu log ghi increased-memory-limit: YES). Cài bằng iloader thì cài lại IPA bằng iloader.";
+"coco.unlock.done.message" = "Bước cuối, chọn 1 trong 2 cách để SideStore ký lại CocoLauncher (dữ liệu và game giữ nguyên; LocalDevVPN phải đang bật):
+1. CÀI LẠI QUA SIDESTORE: mở SideStore và cài đè ngay.
+2. REFRESH TRONG SIDESTORE: mở SideStore › My Apps › bấm Refresh ở CocoLauncher.
+Xong mở lại CocoLauncher: RAM chọn được 3,5–4 GB (dòng đầu log ghi increased-memory-limit: YES). Cài bằng iloader thì cài lại IPA bằng iloader.";
+"coco.unlock.refresh_sidestore" = "REFRESH TRONG SIDESTORE";
 "coco.unlock.open_sidestore" = "CÀI LẠI QUA SIDESTORE";
 "coco.unlock.error.title" = "Chưa mở khoá được";
 "coco.unlock.error.noappid" = "Không thấy App ID %@ trên Apple ID này. Hãy đăng nhập đúng Apple ID mà SideStore dùng để cài CocoLauncher.";

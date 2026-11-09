@@ -503,7 +503,11 @@
 "coco.unlock.2fa.devices_button" = "Send code to devices";
 "coco.unlock.2fa.sms_button" = "Send SMS to %@";
 "coco.unlock.done.title" = "Increased Memory Limit enabled";
-"coco.unlock.done.message" = "Last step: tap REINSTALL WITH SIDESTORE. SideStore signs CocoLauncher again and installs it over the current copy (app data and game are kept). Then open CocoLauncher again: RAM can be set to 3.5-4 GB (the first log line says increased-memory-limit: YES). If you installed with iloader, reinstall the IPA with iloader.";
+"coco.unlock.done.message" = "Last step, pick one of two ways for SideStore to sign CocoLauncher again (app data and game are kept; LocalDevVPN must be on):
+1. REINSTALL WITH SIDESTORE: opens SideStore and installs over the current copy.
+2. REFRESH IN SIDESTORE: open SideStore › My Apps › tap Refresh on CocoLauncher.
+Then open CocoLauncher again: RAM can be set to 3.5-4 GB (the first log line says increased-memory-limit: YES). If you installed with iloader, reinstall the IPA with iloader.";
+"coco.unlock.refresh_sidestore" = "REFRESH IN SIDESTORE";
 "coco.unlock.open_sidestore" = "REINSTALL WITH SIDESTORE";
 "coco.unlock.error.title" = "Could not unlock";
 "coco.unlock.error.noappid" = "App ID %@ was not found on this Apple ID. Sign in with the Apple ID that SideStore used to install CocoLauncher.";

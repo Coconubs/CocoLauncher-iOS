@@ -164,6 +164,15 @@ static void CocoRamEvent(void *ctx, int kind, const char *message) {
                 }
             }];
         }]];
+        // Second way: SideStore has no deep link to Refresh, so open it and the
+        // player taps My Apps > Refresh (also fetches the new profile and signs again)
+        [alert addAction:[UIAlertAction actionWithTitle:localize(@"coco.unlock.refresh_sidestore", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+            [UIApplication.sharedApplication openURL:[NSURL URLWithString:@"sidestore://"] options:@{} completionHandler:^(BOOL ok) {
+                if (!ok) {
+                    [UIApplication.sharedApplication openURL:[NSURL URLWithString:COCO_IOS_DOWNLOAD_PAGE] options:@{} completionHandler:nil];
+                }
+            }];
+        }]];
     } else {
         [alert addAction:[UIAlertAction actionWithTitle:localize(@"coco.unlock.retry", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
             [self askCredentials];
