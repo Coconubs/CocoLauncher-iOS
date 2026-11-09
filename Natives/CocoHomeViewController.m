@@ -681,10 +681,31 @@ void CocoReloadRootViewController(void) {
         [self checkInstallation];
         [self runPreviewHooks];
         [self checkForAppUpdate];
+        [self offerMemoryUnlockIfNeeded];
     }
     if (heapLoweredFrom > 0) {
         [self showHeapLoweredFrom:heapLoweredFrom];
     }
+}
+
+#pragma mark - RAM unlock on launch
+
+// CocoLauncher: without the increased memory limit the Coco pack cannot run
+// (minimum 3.5 GB heap), so ask for the Apple ID right away on every launch
+// until the install is unlocked.
+- (void)offerMemoryUnlockIfNeeded {
+#if !TARGET_OS_SIMULATOR
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    if (!CocoLacksMemoryEntitlement() || [defaults boolForKey:@"cocoAutoPlay"] ||
+        [defaults boolForKey:@"cocoSelfTest"] || [defaults stringForKey:@"cocoPreview"].length > 0) {
+        return;
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (self.presentedViewController == nil && self.view.window != nil) {
+            CocoPresentMemoryUnlock(self);
+        }
+    });
+#endif
 }
 
 #pragma mark - App update notice

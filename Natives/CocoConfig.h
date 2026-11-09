@@ -22,6 +22,8 @@
 #define COCO_HELP_URL           @"https://coconubs.github.io/CocoLauncher-iOS/huong-dan.html"
 #define COCO_IOS_SOURCE_URL     @"https://coconubs.github.io/CocoLauncher-iOS/source.json"
 #define COCO_IOS_DOWNLOAD_PAGE  @"https://coconubs.github.io/CocoLauncher-iOS/"
+// Latest IPA, file named after the bundle ID (SideStore install?url= needs that)
+#define COCO_IOS_IPA_URL        @"https://tai.coconubs.workers.dev/ios/dev.coconubs.cocolauncher.ios.ipa"
 
 // Coco home screen (same look as CocoLauncher Android).
 #define COCO_MINECRAFT_VERSION  @"1.21.1"

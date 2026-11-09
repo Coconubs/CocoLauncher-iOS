@@ -486,7 +486,7 @@
 "coco.memory.mf_dynamic" = "Load models on demand (saves RAM): %@";
 "coco.unlock.row" = "Unlock RAM (enable Increased Memory Limit)";
 "coco.unlock.title" = "Unlock RAM";
-"coco.unlock.message" = "Sign in with the SAME Apple ID that installed CocoLauncher (SideStore). CocoLauncher enables the Increased Memory Limit capability for this app on that account, then you refresh/reinstall CocoLauncher in SideStore. The password is only sent to Apple and is not saved.\n\nBased on the idea of GetMoreRam (hugeBlack) and the isideload library (nab138, MIT).";
+"coco.unlock.message" = "Coco needs the RAM unlock (at least 3.5 GB) to play. Sign in with the SAME Apple ID that installed CocoLauncher (SideStore). CocoLauncher enables the Increased Memory Limit capability for this app on that account, then you refresh/reinstall CocoLauncher in SideStore. The password is only sent to Apple and is not saved.\n\nBased on the idea of GetMoreRam (hugeBlack) and the isideload library (nab138, MIT).";
 "coco.unlock.appleid" = "Apple ID (email)";
 "coco.unlock.password" = "Apple ID password";
 "coco.unlock.start" = "Unlock";
@@ -503,8 +503,8 @@
 "coco.unlock.2fa.devices_button" = "Send code to devices";
 "coco.unlock.2fa.sms_button" = "Send SMS to %@";
 "coco.unlock.done.title" = "Increased Memory Limit enabled";
-"coco.unlock.done.message" = "Last step: open SideStore > My Apps > refresh CocoLauncher, or reinstall CocoLauncher from SideStore. Then open CocoLauncher again: the first log lines must say increased-memory-limit: YES and RAM can go to 3 GB or more. If SideStore installs it fresh you may need to sign in again.";
-"coco.unlock.open_sidestore" = "Open SideStore";
+"coco.unlock.done.message" = "Last step: tap REINSTALL WITH SIDESTORE. SideStore signs CocoLauncher again and installs it over the current copy (app data and game are kept). Then open CocoLauncher again: RAM can be set to 3.5-4 GB (the first log line says increased-memory-limit: YES). If you installed with iloader, reinstall the IPA with iloader.";
+"coco.unlock.open_sidestore" = "REINSTALL WITH SIDESTORE";
 "coco.unlock.error.title" = "Could not unlock";
 "coco.unlock.error.noappid" = "App ID %@ was not found on this Apple ID. Sign in with the Apple ID that SideStore used to install CocoLauncher.";
 "coco.unlock.error.noteam" = "This Apple ID has no developer team yet. Install CocoLauncher with SideStore using this Apple ID first.";

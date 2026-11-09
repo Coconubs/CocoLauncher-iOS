@@ -438,7 +438,7 @@
 "coco.memory.mf_dynamic" = "Nạp model khi cần (tiết kiệm RAM): %@";
 "coco.unlock.row" = "Mở khoá RAM (bật Increased Memory Limit)";
 "coco.unlock.title" = "Mở khoá RAM";
-"coco.unlock.message" = "Đăng nhập ĐÚNG Apple ID đã dùng để cài CocoLauncher (SideStore). CocoLauncher bật quyền Increased Memory Limit cho app này trên tài khoản đó, rồi bạn làm mới/cài lại CocoLauncher trong SideStore. Mật khẩu chỉ gửi tới Apple, không lưu lại.\n\nDựa trên ý tưởng GetMoreRam (hugeBlack) và thư viện isideload (nab138, MIT).";
+"coco.unlock.message" = "Coco cần mở khoá RAM (tối thiểu 3,5 GB) mới chơi được. Đăng nhập ĐÚNG Apple ID đã dùng để cài CocoLauncher (SideStore). CocoLauncher bật quyền Increased Memory Limit cho app này trên tài khoản đó, rồi bạn làm mới/cài lại CocoLauncher trong SideStore. Mật khẩu chỉ gửi tới Apple, không lưu lại.\n\nDựa trên ý tưởng GetMoreRam (hugeBlack) và thư viện isideload (nab138, MIT).";
 "coco.unlock.appleid" = "Apple ID (email)";
 "coco.unlock.password" = "Mật khẩu Apple ID";
 "coco.unlock.start" = "Mở khoá";
@@ -455,8 +455,8 @@
 "coco.unlock.2fa.devices_button" = "Gửi mã tới thiết bị";
 "coco.unlock.2fa.sms_button" = "Gửi SMS tới %@";
 "coco.unlock.done.title" = "Đã bật Increased Memory Limit";
-"coco.unlock.done.message" = "Bước cuối: mở SideStore › My Apps › bấm làm mới (Refresh) CocoLauncher, hoặc cài lại CocoLauncher từ SideStore. Sau đó mở lại CocoLauncher: dòng đầu log phải ghi increased-memory-limit: YES và RAM chọn được tới 3 GB trở lên. Dữ liệu game và tài khoản có thể phải đăng nhập lại nếu SideStore cài mới.";
-"coco.unlock.open_sidestore" = "Mở SideStore";
+"coco.unlock.done.message" = "Bước cuối: bấm CÀI LẠI QUA SIDESTORE. SideStore sẽ ký lại và cài đè CocoLauncher (dữ liệu và game giữ nguyên). Xong mở lại CocoLauncher: RAM chọn được 3,5–4 GB (dòng đầu log ghi increased-memory-limit: YES). Cài bằng iloader thì cài lại IPA bằng iloader.";
+"coco.unlock.open_sidestore" = "CÀI LẠI QUA SIDESTORE";
 "coco.unlock.error.title" = "Chưa mở khoá được";
 "coco.unlock.error.noappid" = "Không thấy App ID %@ trên Apple ID này. Hãy đăng nhập đúng Apple ID mà SideStore dùng để cài CocoLauncher.";
 "coco.unlock.error.noteam" = "Apple ID này chưa có nhóm nhà phát triển. Hãy cài CocoLauncher bằng SideStore với Apple ID này trước.";

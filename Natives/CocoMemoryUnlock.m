@@ -1,4 +1,5 @@
 #import "CocoMemoryUnlock.h"
+#import "CocoConfig.h"
 #import "cocoram/cocoram.h"
 #import "utils.h"
 
@@ -153,7 +154,15 @@ static void CocoRamEvent(void *ctx, int kind, const char *message) {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
     if (success) {
         [alert addAction:[UIAlertAction actionWithTitle:localize(@"coco.unlock.open_sidestore", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
-            [UIApplication.sharedApplication openURL:[NSURL URLWithString:@"sidestore://"] options:@{} completionHandler:nil];
+            // Reinstalling from SideStore signs the app again with the new
+            // capability; the app data is kept. Fall back to SideStore itself.
+            NSString *encoded = [COCO_IOS_IPA_URL stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.alphanumericCharacterSet];
+            NSURL *install = [NSURL URLWithString:[@"sidestore://install?url=" stringByAppendingString:encoded]];
+            [UIApplication.sharedApplication openURL:install options:@{} completionHandler:^(BOOL ok) {
+                if (!ok) {
+                    [UIApplication.sharedApplication openURL:[NSURL URLWithString:COCO_IOS_DOWNLOAD_PAGE] options:@{} completionHandler:nil];
+                }
+            }];
         }]];
     } else {
         [alert addAction:[UIAlertAction actionWithTitle:localize(@"coco.unlock.retry", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
