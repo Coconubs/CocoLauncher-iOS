@@ -454,6 +454,7 @@ int main(int argc, char *argv[]) {
     init_setupCoco();
     init_setupCocoControls();
     CocoMigrateSettings();
+    CocoApplyHeapAfterUnlock();
     NSLog(@"[CocoLauncher] RAM %d MB, process limit %d MB, increased-memory-limit %@, heap %ld MB (recommended %d, safe max %d), preset %@",
         CocoDeviceMemoryMB(), CocoProcessMemoryLimitMB(), CocoHasIncreasedMemoryLimit() ? @"YES" : @"NO",
         (long)getPrefInt(@"java.allocated_memory"), CocoRecommendedHeapMB(), CocoSafeMaxHeapMB(),

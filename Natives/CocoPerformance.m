@@ -58,6 +58,25 @@ int CocoSmoothHeapMB(void) {
     return CocoDeviceMemoryMB() >= 7000 ? 3840 : 2560;
 }
 
+// 9/11 (owner): once the increased memory limit works, the heap goes to the highest safe value:
+// 12 GB devices 4096 MB, 8 GB 3840 MB, smaller devices whatever still fits (always under CocoSafeMaxHeapMB).
+int CocoUnlockedHeapMB(void) {
+    int deviceMB = CocoDeviceMemoryMB();
+    int safe = CocoSafeMaxHeapMB() / 128 * 128;
+    int wanted = deviceMB >= 11000 ? 4096 : (deviceMB >= 7000 ? 3840 : safe);
+    return MAX(MIN(wanted, safe), 1024);
+}
+
+void CocoApplyHeapAfterUnlock(void) {
+    if (!CocoHasIncreasedMemoryLimit() || getPrefBool(@"internal.coco_unlocked_heap_applied")) {
+        return;
+    }
+    int heap = CocoUnlockedHeapMB();
+    setPrefObject(@"java.allocated_memory", @(heap));
+    setPrefBool(@"internal.coco_unlocked_heap_applied", YES);
+    NSLog(@"[CocoLauncher] Increased memory limit active: heap set to %d MB", heap);
+}
+
 int CocoRecommendedHeapMB(void) {
     int deviceMB = CocoDeviceMemoryMB();
     int wanted;

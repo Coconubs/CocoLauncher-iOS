@@ -43,6 +43,8 @@ int CocoSafeMaxHeapMB(void);
 
 // Recommended -Xmx for the Coco pack on this device, in MB.
 int CocoRecommendedHeapMB(void);
+int CocoUnlockedHeapMB(void);
+void CocoApplyHeapAfterUnlock(void);
 
 // YES on devices that should start on the Low preset (4 GB RAM or less, few cores).
 BOOL CocoIsLowEndDevice(void);
