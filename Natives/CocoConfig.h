@@ -35,3 +35,5 @@
 // Event text over the home art; the copy bundled in resources/cocoui is used
 // when this one can't be downloaded.
 #define COCO_EVENT_URL          @"https://coconubs.github.io/CocoLauncher-iOS/hero_event.json"
+// 9/11: 5 events, one per background picture (same order as the Windows launcher hero-events.js)
+#define COCO_EVENTS_URL         @"https://coconubs.github.io/CocoLauncher-iOS/hero_events.json"

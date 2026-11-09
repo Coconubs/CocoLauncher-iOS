@@ -67,6 +67,13 @@ void CocoReloadRootViewController(void) {
 @property(nonatomic) UILabel *eyebrowLabel;
 @property(nonatomic) UILabel *titleLabel;
 @property(nonatomic) UILabel *subtitleLabel;
+// Background slideshow like the Windows launcher: hero-0..4, 9 s each, cross-fade with a slow zoom
+@property(nonatomic) UIImageView *heroFront;
+@property(nonatomic) UIImageView *heroBack;
+@property(nonatomic) UIStackView *heroDots;
+@property(nonatomic) NSArray<NSDictionary *> *heroEvents;
+@property(nonatomic) NSInteger heroIndex;
+@property(nonatomic) NSTimer *heroTimer;
 @property(nonatomic) UIStackView *readyRow;
 @property(nonatomic) NSLayoutConstraint *readyFullWidth;
 @property(nonatomic) NSLayoutConstraint *fieldWidth;
@@ -162,6 +169,7 @@ void CocoReloadRootViewController(void) {
 }
 
 - (void)dealloc {
+    [self.heroTimer invalidate];
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [self stopObservingProgress];
 }
@@ -181,11 +189,23 @@ void CocoReloadRootViewController(void) {
     ]];
 }
 
+static NSInteger const CocoHeroCount = 5;
+static NSTimeInterval const CocoHeroSeconds = 9;
+
+- (UIImage *)heroPicture:(NSInteger)index {
+    return CocoPicture([NSString stringWithFormat:@"hero-%ld", (long)index]) ?: CocoPicture(@"hero");
+}
+
 - (void)buildBackground {
-    UIImageView *art = [[UIImageView alloc] initWithImage:CocoPicture(@"hero")];
-    art.contentMode = UIViewContentModeScaleAspectFill;
-    art.clipsToBounds = YES;
-    [self pinToView:art];
+    // Two views take turns (only the shown picture and the next one are decoded, not all five)
+    for (int i = 0; i < 2; i++) {
+        UIImageView *art = [UIImageView new];
+        art.contentMode = UIViewContentModeScaleAspectFill;
+        art.clipsToBounds = YES;
+        art.alpha = 0;
+        [self pinToView:art];
+        if (i == 0) self.heroBack = art; else self.heroFront = art;
+    }
 
     // Dark on the left and at the bottom so the text stays readable
     CocoGradientView *shade = [[CocoGradientView alloc] initWithFrame:CGRectZero];
@@ -198,6 +218,74 @@ void CocoReloadRootViewController(void) {
     shadeBottom.colors = @[CocoColor(0x0007080F), CocoColor(0x6607080F), CocoColor(0xE607080F)];
     shadeBottom.locations = @[@0, @0.65, @1];
     [self pinToView:shadeBottom];
+
+    UIStackView *dots = [UIStackView new];
+    dots.translatesAutoresizingMaskIntoConstraints = NO;
+    dots.axis = UILayoutConstraintAxisHorizontal;
+    dots.spacing = 6;
+    dots.userInteractionEnabled = NO;
+    for (int i = 0; i < CocoHeroCount; i++) {
+        UIView *dot = [UIView new];
+        dot.translatesAutoresizingMaskIntoConstraints = NO;
+        dot.layer.cornerRadius = 2;
+        dot.backgroundColor = CocoColor(0x40FFFFFF);
+        [dot.widthAnchor constraintEqualToConstant:22].active = YES;
+        [dot.heightAnchor constraintEqualToConstant:4].active = YES;
+        [dots addArrangedSubview:dot];
+    }
+    [self.view addSubview:dots];
+    self.heroDots = dots;
+    [NSLayoutConstraint activateConstraints:@[
+        [dots.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-20],
+        [dots.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-14],
+    ]];
+
+    // Random first picture each time, as on Windows
+    self.heroIndex = arc4random_uniform((uint32_t)CocoHeroCount);
+    [self showHero:self.heroIndex animated:NO];
+    __weak CocoHomeViewController *weakSelf = self;
+    self.heroTimer = [NSTimer scheduledTimerWithTimeInterval:CocoHeroSeconds repeats:YES block:^(NSTimer *timer) {
+        CocoHomeViewController *strongSelf = weakSelf;
+        if (strongSelf == nil) { [timer invalidate]; return; }
+        if (strongSelf.view.window == nil) return;
+        [strongSelf showHero:(strongSelf.heroIndex + 1) % CocoHeroCount animated:YES];
+    }];
+}
+
+- (void)showHero:(NSInteger)index animated:(BOOL)animated {
+    self.heroIndex = index;
+    UIImageView *incoming = self.heroBack;
+    UIImageView *outgoing = self.heroFront;
+    incoming.image = [self heroPicture:index];
+    [incoming.layer removeAllAnimations];
+    incoming.transform = CGAffineTransformMakeScale(1.06, 1.06);
+    // incoming just above outgoing, both under the shades and the content
+    [self.view sendSubviewToBack:incoming];
+    [self.view sendSubviewToBack:outgoing];
+    [UIView animateWithDuration:(animated ? 1.2 : 0) animations:^{
+        incoming.alpha = 1;
+        outgoing.alpha = 0;
+    } completion:^(BOOL finished) {
+        if (finished && outgoing.alpha == 0) outgoing.image = nil;
+    }];
+    [UIView animateWithDuration:CocoHeroSeconds delay:0
+        options:UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction animations:^{
+        incoming.transform = CGAffineTransformIdentity;
+    } completion:nil];
+    self.heroFront = incoming;
+    self.heroBack = outgoing;
+    [self.heroDots.arrangedSubviews enumerateObjectsUsingBlock:^(UIView *dot, NSUInteger i, BOOL *stop) {
+        dot.backgroundColor = i == (NSUInteger)index ? UIColor.whiteColor : CocoColor(0x40FFFFFF);
+    }];
+    if (self.heroEvents.count > 0) {
+        NSDictionary *event = self.heroEvents[index % self.heroEvents.count];
+        if (animated && self.heroStack) {
+            [UIView transitionWithView:self.heroStack duration:0.6 options:UIViewAnimationOptionTransitionCrossDissolve
+                animations:^{ [self applyEvent:event]; } completion:nil];
+        } else {
+            [self applyEvent:event];
+        }
+    }
 }
 
 - (UIControl *)railItem:(NSString *)icon title:(NSString *)title action:(SEL)action {
@@ -582,43 +670,46 @@ void CocoReloadRootViewController(void) {
 
 #pragma mark - Content
 
-- (void)loadEvent {
-    NSDictionary *event = nil;
-    NSDictionary *cached = [NSUserDefaults.standardUserDefaults dictionaryForKey:@"CocoHeroEvent"];
-    if (cached) {
-        event = cached;
-    } else {
-        NSString *path = [NSBundle.mainBundle pathForResource:@"hero_event" ofType:@"json" inDirectory:@"cocoui"];
-        NSData *data = path ? [NSData dataWithContentsOfFile:path] : nil;
-        id json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
-        if ([json isKindOfClass:NSDictionary.class]) {
-            event = json;
+- (NSArray<NSDictionary *> *)cleanEvents:(id)json {
+    NSArray *list = [json isKindOfClass:NSDictionary.class] ? json[@"events"] : json;
+    if (![list isKindOfClass:NSArray.class]) return nil;
+    NSMutableArray *out = [NSMutableArray new];
+    for (id item in list) {
+        if (![item isKindOfClass:NSDictionary.class]) continue;
+        NSMutableDictionary *clean = [NSMutableDictionary new];
+        for (NSString *key in @[@"eyebrow", @"title", @"desc"]) {
+            if ([item[key] isKindOfClass:NSString.class]) clean[key] = item[key];
         }
+        [out addObject:clean];
     }
-    [self applyEvent:event];
+    return out.count > 0 ? out : nil;
+}
 
-    // The event text can change without a new app version
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:COCO_EVENT_URL]
+- (void)loadEvent {
+    NSArray *events = [self cleanEvents:[NSUserDefaults.standardUserDefaults arrayForKey:@"CocoHeroEvents"]];
+    if (events == nil) {
+        NSString *path = [NSBundle.mainBundle pathForResource:@"hero_events" ofType:@"json" inDirectory:@"cocoui"];
+        NSData *data = path ? [NSData dataWithContentsOfFile:path] : nil;
+        events = data ? [self cleanEvents:[NSJSONSerialization JSONObjectWithData:data options:0 error:nil]] : nil;
+    }
+    self.heroEvents = events ?: @[@{}];
+    [self applyEvent:self.heroEvents[self.heroIndex % self.heroEvents.count]];
+
+    // The event texts can change without a new app version (site/hero_events.json)
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:COCO_EVENTS_URL]
         cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10];
     __weak CocoHomeViewController *weakSelf = self;
     [[NSURLSession.sharedSession dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSInteger status = [response isKindOfClass:NSHTTPURLResponse.class] ? ((NSHTTPURLResponse *)response).statusCode : 0;
-        if (data == nil || status != 200) {
-            return;
-        }
+        if (data == nil || status != 200) return;
         id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-        if (![json isKindOfClass:NSDictionary.class]) {
-            return;
-        }
-        NSMutableDictionary *clean = [NSMutableDictionary new];
-        for (NSString *key in @[@"eyebrow", @"title", @"desc"]) {
-            if ([json[key] isKindOfClass:NSString.class]) {
-                clean[key] = json[key];
-            }
-        }
-        [NSUserDefaults.standardUserDefaults setObject:clean forKey:@"CocoHeroEvent"];
         dispatch_async(dispatch_get_main_queue(), ^{
-            [weakSelf applyEvent:clean];
+            CocoHomeViewController *strongSelf = weakSelf;
+            NSArray *fresh = [strongSelf cleanEvents:json];
+            if (strongSelf == nil || fresh == nil) return;
+            [NSUserDefaults.standardUserDefaults setObject:fresh forKey:@"CocoHeroEvents"];
+            strongSelf.heroEvents = fresh;
+            [strongSelf applyEvent:fresh[strongSelf.heroIndex % fresh.count]];
         });
     }] resume];
 }

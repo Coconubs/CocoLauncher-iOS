@@ -1,0 +1,30 @@
+{
+  "_ghi_chu": "Su kien tren anh nen CocoLauncher iOS, thu tu = anh hero-0..4 (giong ban Windows, hero-events.js). title dung \n de xuong dong, desc duoc dung <b>..</b>. Sua file site/hero_events.json tren nhanh main la app cap nhat, khong can ban moi.",
+  "events": [
+    {
+      "eyebrow": "SỰ KIỆN CUỐI TUẦN",
+      "title": "Giờ Vàng\nHuyền Thoại",
+      "desc": "Thứ 7 và Chủ nhật, <b>20:00 – 22:00</b>. <b>x2</b> tỉ lệ Legendary xuất hiện tự nhiên khắp thế giới."
+    },
+    {
+      "eyebrow": "ĐẤU XẾP HẠNG",
+      "title": "Đấu Rank",
+      "desc": "Thi đấu <b>Đơn & Đôi</b> với người chơi khác, leo bảng xếp hạng Elo."
+    },
+    {
+      "eyebrow": "BANG HỘI",
+      "title": "Bang Hội\nChiến",
+      "desc": "Cả tuần, <b>09:00 – 22:00</b>. Treo cờ, khiêu chiến bang khác, bang nhiều cờ nhất thành Bá chủ."
+    },
+    {
+      "eyebrow": "SỰ KIỆN",
+      "title": "Sự kiện\nCâu Cá",
+      "desc": "Câu cá theo độ hiếm — kiên nhẫn chờ để săn <b>cá Huyền thoại</b>."
+    },
+    {
+      "eyebrow": "THỬ THÁCH",
+      "title": "Tháp\nChiến Đấu",
+      "desc": "Leo tháp, đánh bại huấn luyện viên mạnh dần, đổi <b>BP</b> lấy phần thưởng."
+    }
+  ]
+}

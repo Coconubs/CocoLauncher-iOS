@@ -270,6 +270,8 @@ static NSArray<NSString *> *CocoRendererKeys(void) {
         self.columns.axis = narrow ? UILayoutConstraintAxisVertical : UILayoutConstraintAxisHorizontal;
         self.columns.alignment = narrow ? UIStackViewAlignmentFill : UIStackViewAlignmentTop;
         self.columns.spacing = narrow ? 26 : 32;
+        // FillEqually also equalises heights in a vertical stack: the shorter column was stretched into big gaps
+        self.columns.distribution = narrow ? UIStackViewDistributionFill : UIStackViewDistributionFillEqually;
         self.footer.axis = narrow ? UILayoutConstraintAxisVertical : UILayoutConstraintAxisHorizontal;
         self.footer.alignment = narrow ? UIStackViewAlignmentLeading : UIStackViewAlignmentCenter;
         self.footer.spacing = narrow ? 4 : 12;
